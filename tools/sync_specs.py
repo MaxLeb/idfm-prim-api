@@ -32,6 +32,7 @@ SPEC_URL_PATTERNS = [
     r'https?://[^\s"\'<>]+?(?:openapi|swagger)[^\s"\'<>]*?\.json',
     r'https?://[^\s"\'<>]+?/spec(?:/|\.json)',
     r'https?://[^\s"\'<>]+?/api-docs(?:/|\.json)',
+    r'https?://[^\s"\'<>]+?/swagger\?[^\s"\'<>]+',
 ]
 
 
@@ -77,10 +78,14 @@ def save_metadata(meta_path: Path, metadata: dict[str, Any]) -> None:
 
 def extract_spec_url_from_html(html_content: str) -> str | None:
     """Extract OpenAPI/Swagger spec URL from HTML using regex patterns."""
+    # Try extracting swaggerUrl from embedded JSON/JS (PRIM Gravitee portal)
+    m = re.search(r'"swaggerUrl"\s*:\s*"(https?://[^"]+)"', html_content)
+    if m:
+        return m.group(1)
+
     for pattern in SPEC_URL_PATTERNS:
         matches = re.findall(pattern, html_content, re.IGNORECASE)
         if matches:
-            # Return the first match
             return matches[0]
     return None
 

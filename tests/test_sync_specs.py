@@ -82,6 +82,24 @@ class TestExtractSpecUrlFromHtml:
         result = extract_spec_url_from_html(html)
         assert result == "https://api.example.com/api-docs.json"
 
+    def test_finds_swagger_url_key_in_json(self):
+        html = '{"swaggerUrl":"https://prim.example.com/proxy/apis/abc/swagger?name=my-api"}'
+        result = extract_spec_url_from_html(html)
+        assert result == "https://prim.example.com/proxy/apis/abc/swagger?name=my-api"
+
+    def test_swagger_url_key_takes_priority(self):
+        html = (
+            '{"swaggerUrl":"https://prim.example.com/swagger?name=api"}'
+            ' <a href="https://other.com/openapi.json">link</a>'
+        )
+        result = extract_spec_url_from_html(html)
+        assert result == "https://prim.example.com/swagger?name=api"
+
+    def test_finds_swagger_query_string_url(self):
+        html = '<a href="https://example.com/api/swagger?name=test-api">export</a>'
+        result = extract_spec_url_from_html(html)
+        assert result == "https://example.com/api/swagger?name=test-api"
+
     def test_no_spec_url(self):
         html = "<html><body>No spec here</body></html>"
         result = extract_spec_url_from_html(html)
