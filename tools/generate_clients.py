@@ -162,8 +162,8 @@ def main(
 
     # Check if specs directory exists
     if not specs_dir.exists():
-        console.print("[red]Error: specs/ directory not found[/red]")
-        raise typer.Exit(1)
+        console.print("[yellow]No specs/ directory — nothing to generate[/yellow]")
+        raise typer.Exit(0)
 
     # Ensure clients directory exists
     clients_dir.mkdir(exist_ok=True)
