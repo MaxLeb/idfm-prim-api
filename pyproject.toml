@@ -1,0 +1,38 @@
+[project]
+name = "prim-api"
+version = "0.1.0"
+description = "Auto-sync PRIM API specs, generate Python clients, sync & validate Opendatasoft datasets"
+requires-python = ">=3.12"
+dependencies = [
+    "httpx>=0.27",
+    "pyyaml>=6.0",
+    "typer>=0.12",
+    "jsonschema>=4.21",
+    "rich>=13.7",
+]
+
+[project.scripts]
+sync-specs = "tools.sync_specs:app"
+generate-clients = "tools.generate_clients:app"
+sync-datasets = "tools.sync_datasets:app"
+validate-datasets = "tools.validate_datasets:app"
+sync-all = "tools.sync_all:app"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W", "UP", "B", "SIM"]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.23",
+    "respx>=0.21",
+    "ruff>=0.6",
+]

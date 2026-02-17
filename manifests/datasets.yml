@@ -1,0 +1,5 @@
+datasets:
+  - dataset_id: "zones-d-arrets"
+    portal_base: "https://data.iledefrance-mobilites.fr"
+    export_format: "jsonl"
+    validate: true

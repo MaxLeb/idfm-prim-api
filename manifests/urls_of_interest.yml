@@ -1,0 +1,5 @@
+urls:
+  prim_api_example: "https://prim.iledefrance-mobilites.fr/fr/apis/idfm-ivtr-requete_unitaire"
+  dataset_zones_d_arrets: "https://data.iledefrance-mobilites.fr/explore/dataset/zones-d-arrets/"
+  explore_api_docs: "https://help.opendatasoft.com/apis/ods-explore-v2/"
+  explore_api_console_idfm: "https://data.iledefrance-mobilites.fr/api/explore/v2.1/console"

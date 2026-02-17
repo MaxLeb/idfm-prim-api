@@ -1,0 +1,6 @@
+apis:
+  idfm_ivtr_requete_unitaire:
+    type: prim_page
+    page_url: "https://prim.iledefrance-mobilites.fr/fr/apis/idfm-ivtr-requete_unitaire"
+    # auth: "prim_token"
+    # spec_url_override: "https://....json"

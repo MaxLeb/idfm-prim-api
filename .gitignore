@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+
+# Virtual env
+.venv/
+
+# uv
+uv.lock
+
+# Data artifacts (downloaded, not checked in)
+data/raw/
+data/schema/
+data/reports/
+
+# Downloaded specs and generated clients (re-generated on demand)
+specs/*.json
+specs/*.meta.json
+clients/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# OS
+.DS_Store
