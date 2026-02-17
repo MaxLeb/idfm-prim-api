@@ -116,6 +116,7 @@ def generate_client(
         f"/local/clients/{api_name}",
         "--package-name",
         api_name,
+        "--skip-validate-spec",
     ]
 
     if dry_run:
