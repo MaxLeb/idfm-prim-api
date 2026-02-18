@@ -26,6 +26,8 @@ Each step is conditional: resources are only re-fetched or regenerated when chan
 ## Repository structure
 
 ```
+prim_api/           # Python SDK (IdFMPrimAPI, dataset sync, background updater)
+samples/            # Runnable usage examples (update when adding endpoints/data)
 manifests/          # YAML manifests (apis.yml, datasets.yml, urls_of_interest.yml)
 specs/              # Downloaded OpenAPI/Swagger specs (committed)
 clients/            # Generated Python clients (committed)
@@ -66,7 +68,62 @@ tools/              # CLI scripts
 uv sync
 ```
 
-## Usage
+## Python SDK
+
+The `prim_api` package provides a high-level Python interface to PRIM APIs and datasets.
+
+```python
+from prim_api import IdFMPrimAPI
+
+api = IdFMPrimAPI(api_key="your-prim-key")
+
+# Query real-time next passages at a stop
+passages = api.get_passages("STIF:StopPoint:Q:473921:")
+
+# Filter by line
+passages = api.get_passages("STIF:StopPoint:Q:473921:", line_id="STIF:Line::C01742:")
+
+# Access downloaded datasets
+zones = api.get_zones_darrets()
+
+# Cleanup (stops background dataset updater)
+api.stop()
+```
+
+### Constructor options
+
+```python
+IdFMPrimAPI(
+    api_key="...",          # Required. PRIM API key.
+    auto_sync=True,         # Download missing datasets on init.
+    sync_interval=3600,     # Background refresh interval in seconds.
+)
+```
+
+### Available methods
+
+| Method | Description |
+|---|---|
+| `get_passages(stop_id, *, line_id=None)` | Real-time next passages at a stop/area |
+| `get_zones_darrets()` | Load zones-d-arrets dataset as list of dicts |
+| `ensure_datasets()` | Download datasets if missing or stale |
+| `refresh_datasets()` | Force re-check all datasets |
+| `stop()` | Stop the background updater thread |
+
+### Using datasets without an API key
+
+Datasets are open data and don't require authentication:
+
+```python
+from prim_api.datasets import ensure_all_datasets, load_dataset
+
+ensure_all_datasets()
+zones = load_dataset("zones-d-arrets")
+```
+
+See [`samples/`](samples/) for runnable examples.
+
+## CLI Tools
 
 ### Run individual steps
 

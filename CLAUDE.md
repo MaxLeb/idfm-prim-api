@@ -33,6 +33,7 @@ uv run python tools/sync_all.py  # full sync pipeline
 
 ```
 prim_api/           # Python SDK: IdFMPrimAPI wrapper, dataset sync/access, background updater
+samples/            # Runnable examples — update when adding new endpoints or datasets
 manifests/          # YAML manifests driving all sync (apis.yml, datasets.yml, urls_of_interest.yml)
 specs/              # Downloaded OpenAPI/Swagger JSON + .meta.json (committed)
 clients/            # Generated Python clients (committed, excluded from ruff)
