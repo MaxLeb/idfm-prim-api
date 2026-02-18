@@ -10,6 +10,7 @@ This script:
 """
 
 import json
+import os
 import subprocess
 from pathlib import Path
 
@@ -104,6 +105,8 @@ def generate_client(
         "docker",
         "run",
         "--rm",
+        "--user",
+        f"{os.getuid()}:{os.getgid()}",
         "-v",
         f"{repo_root}:/local",
         "openapitools/openapi-generator-cli:v7.4.0",
