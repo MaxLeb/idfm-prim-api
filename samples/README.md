@@ -8,6 +8,7 @@ Runnable examples demonstrating prim_api usage. Each script is self-contained.
 | `browse_zones_darrets.py` | Download and browse the zones-d-arrets dataset | No |
 | `browse_referentiel_lignes.py` | Download and browse the transit line registry | No |
 | `browse_arrets_lignes.py` | Download and browse stop-line associations | No |
+| `next_passages_board.py` | Interactive departure board (mode → line → stop → direction) | Yes (`PRIM_TOKEN`) |
 
 ## Running
 
@@ -31,6 +32,9 @@ uv run python samples/browse_arrets_lignes.py --search "Châtelet"
 export PRIM_TOKEN="your-api-key"
 uv run python samples/get_passages.py
 uv run python samples/get_passages.py --stop "STIF:StopArea:SP:474151:"
+
+# Interactive departure board (requires API key)
+uv run python samples/next_passages_board.py
 ```
 
 ## Adding samples
