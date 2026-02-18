@@ -4,6 +4,7 @@
 Usage:
     export PRIM_TOKEN="your-api-key"
     uv run python samples/next_passages_board.py
+    uv run python samples/next_passages_board.py --verbose
 
 This sample will:
 1. Load the arrets-lignes dataset
@@ -14,6 +15,8 @@ This sample will:
 6. Display a real-time departure board with countdown timers
 """
 
+import argparse
+import json
 import os
 import sys
 from datetime import UTC, datetime
@@ -60,7 +63,7 @@ def numbered_menu(console, title, items, label_fn):
         return items[0]
 
 
-def fetch_passages(api_key, monitoring_ref, line_ref=None):
+def fetch_passages(api_key, monitoring_ref, line_ref=None, *, verbose=False, console=None):
     """Fetch real-time passages from PRIM API.
 
     Always returns parsed JSON — even on 4xx, since the PRIM API sends
@@ -71,12 +74,26 @@ def fetch_passages(api_key, monitoring_ref, line_ref=None):
         params["LineRef"] = line_ref
 
     headers = {"apikey": api_key}
+    url = f"{PRIM_BASE_URL}{STOP_MONITORING_PATH}"
+
+    if verbose and console:
+        console.print(f"[dim]GET {url}[/dim]")
+        console.print(f"[dim]  params: {params}[/dim]")
 
     with httpx.Client() as client:
-        response = client.get(
-            f"{PRIM_BASE_URL}{STOP_MONITORING_PATH}", params=params, headers=headers, timeout=30.0
-        )
-        return response.json()
+        response = client.get(url, params=params, headers=headers, timeout=30.0)
+
+        if verbose and console:
+            size = len(response.content)
+            console.print(f"[dim]  → HTTP {response.status_code} ({size} bytes)[/dim]")
+
+        data = response.json()
+
+        if verbose and console:
+            body = json.dumps(data, indent=2, ensure_ascii=False)
+            console.print(f"[dim]  response: {body}[/dim]")
+
+        return data
 
 
 def get_siri_error(siri_json):
@@ -169,7 +186,17 @@ def format_delta(departure_dt):
 
 
 def main():
+    parser = argparse.ArgumentParser(description="Interactive departure board")
+    parser.add_argument(
+        "--verbose",
+        "-v",
+        action="store_true",
+        help="Show debug info (queries, IDs, responses)",
+    )
+    args = parser.parse_args()
+
     console = Console()
+    verbose = args.verbose
 
     # Check for API key
     api_key = os.environ.get("PRIM_TOKEN")
@@ -196,6 +223,8 @@ def main():
             sys.exit(1)
 
         chosen_mode = numbered_menu(console, "Select a transport mode:", modes, lambda m: m)
+        if verbose:
+            console.print(f"[dim]  → mode={chosen_mode}[/dim]")
 
         # Step 2: Pick a line
         mode_records = [r for r in records if r.get("mode") == chosen_mode]
@@ -224,6 +253,12 @@ def main():
 
         chosen_line_id = chosen_line_record["id"]
         chosen_line_shortname = chosen_line_record.get("shortname", "?")
+        if verbose:
+            console.print(
+                f"[dim]  → line={chosen_line_shortname} id={chosen_line_id}"
+                f" ({len(mode_records)} mode records,"
+                f" {len(unique_lines)} unique lines)[/dim]"
+            )
 
         # Step 3: Pick a stop
         line_records = [r for r in records if r.get("id") == chosen_line_id]
@@ -252,13 +287,22 @@ def main():
 
         chosen_stop_id = chosen_stop_record["stop_id"]
         chosen_stop_name = chosen_stop_record.get("stop_name", "?")
+        if verbose:
+            console.print(
+                f"[dim]  → stop={chosen_stop_name}"
+                f" stop_id={chosen_stop_id}"
+                f" ({len(unique_stops)} unique stops)[/dim]"
+            )
 
         # Step 4: Fetch passages from API (always convert to STIF format)
         console.print(f"\n[cyan]Fetching real-time data for {chosen_stop_name}...[/cyan]")
 
         stif_stop = to_stif_stop(chosen_stop_id)
         stif_line = to_stif_line(chosen_line_id)
-        siri_json = fetch_passages(api_key, stif_stop, stif_line)
+        if verbose:
+            console.print(f"[dim]  ID conversion: {chosen_stop_id} → {stif_stop}[/dim]")
+            console.print(f"[dim]  ID conversion: {chosen_line_id} → {stif_line}[/dim]")
+        siri_json = fetch_passages(api_key, stif_stop, stif_line, verbose=verbose, console=console)
 
         siri_error = get_siri_error(siri_json)
         if siri_error:
@@ -266,6 +310,8 @@ def main():
             sys.exit(0)
 
         visits = parse_visits(siri_json)
+        if verbose:
+            console.print(f"[dim]  → {len(visits)} visits parsed[/dim]")
 
         if not visits:
             console.print(f"[yellow]No upcoming passages found for {chosen_stop_name}[/yellow]")
