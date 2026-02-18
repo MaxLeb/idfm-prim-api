@@ -85,6 +85,7 @@ passages = api.get_passages("STIF:StopPoint:Q:473921:", line_id="STIF:Line::C017
 
 # Access downloaded datasets
 zones = api.get_zones_darrets()
+lignes = api.get_referentiel_lignes()
 
 # Cleanup (stops background dataset updater)
 api.stop()
@@ -106,6 +107,7 @@ IdFMPrimAPI(
 |---|---|
 | `get_passages(stop_id, *, line_id=None)` | Real-time next passages at a stop/area |
 | `get_zones_darrets()` | Load zones-d-arrets dataset as list of dicts |
+| `get_referentiel_lignes()` | Load referentiel-des-lignes dataset as list of dicts |
 | `ensure_datasets()` | Download datasets if missing or stale |
 | `refresh_datasets()` | Force re-check all datasets |
 | `stop()` | Stop the background updater thread |
@@ -119,6 +121,7 @@ from prim_api.datasets import ensure_all_datasets, load_dataset
 
 ensure_all_datasets()
 zones = load_dataset("zones-d-arrets")
+lignes = load_dataset("referentiel-des-lignes")
 ```
 
 See [`samples/`](samples/) for runnable examples.

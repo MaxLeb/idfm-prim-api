@@ -3,3 +3,7 @@ datasets:
     portal_base: "https://data.iledefrance-mobilites.fr"
     export_format: "jsonl"
     validate: true
+  - dataset_id: "referentiel-des-lignes"
+    portal_base: "https://data.iledefrance-mobilites.fr"
+    export_format: "jsonl"
+    validate: true

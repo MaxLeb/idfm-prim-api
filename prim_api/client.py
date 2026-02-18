@@ -40,6 +40,9 @@ class IdFMPrimAPI:
     def get_zones_darrets(self) -> list[dict]:
         return load_dataset("zones-d-arrets")
 
+    def get_referentiel_lignes(self) -> list[dict]:
+        return load_dataset("referentiel-des-lignes")
+
     def stop(self) -> None:
         self._updater.stop()
 
