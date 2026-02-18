@@ -63,9 +63,7 @@ class TestLoadDataset:
     def test_load_dataset_reads_jsonl(self, tmp_path, monkeypatch):
         monkeypatch.setattr(ds_mod, "DATA_RAW_DIR", tmp_path)
         records = [{"id": 1, "name": "a"}, {"id": 2, "name": "b"}]
-        (tmp_path / "test-ds.jsonl").write_text(
-            "\n".join(json.dumps(r) for r in records) + "\n"
-        )
+        (tmp_path / "test-ds.jsonl").write_text("\n".join(json.dumps(r) for r in records) + "\n")
 
         result = ds_mod.load_dataset("test-ds")
         assert result == records
@@ -178,9 +176,7 @@ class TestIdFMPrimAPI:
             patch.object(client_mod, "ApiClient"),
             patch.object(client_mod, "DefaultApi"),
             patch.object(client_mod, "ensure_all_datasets"),
-            patch.object(
-                client_mod, "load_dataset", return_value=[{"name": "Gare"}]
-            ) as mock_ld,
+            patch.object(client_mod, "load_dataset", return_value=[{"name": "Gare"}]) as mock_ld,
         ):
             sdk = client_mod.IdFMPrimAPI("my-key", auto_sync=False)
             result = sdk.get_zones_darrets()

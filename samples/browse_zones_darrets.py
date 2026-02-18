@@ -38,9 +38,7 @@ def main():
 
     if args.search:
         search_lower = args.search.lower()
-        records = [
-            r for r in records if search_lower in json.dumps(r, ensure_ascii=False).lower()
-        ]
+        records = [r for r in records if search_lower in json.dumps(r, ensure_ascii=False).lower()]
         print(f"Matching '{args.search}': {len(records)} records")
 
     print(f"\nShowing first {min(args.limit, len(records))} records:\n")
