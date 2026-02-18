@@ -15,6 +15,8 @@ import json
 import os
 import sys
 
+# Add the repo root to sys.path so `from prim_api import ...` works when
+# running this script directly (e.g. `python samples/browse_arrets_lignes.py`).
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from prim_api.datasets import ensure_all_datasets, load_dataset

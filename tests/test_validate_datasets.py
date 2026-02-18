@@ -1,4 +1,19 @@
-"""Tests for tools/validate_datasets.py."""
+"""Tests for tools/validate_datasets.py.
+
+Key testing patterns used in this file:
+
+- **@pytest.mark.parametrize**: Runs the same test function multiple times
+  with different input/output pairs.  Each tuple in the list becomes one
+  test case, shown separately in the test report.
+
+- **_make_schema helper**: A private method that builds a minimal JSON Schema
+  dict.  This avoids repeating the boilerplate ``$schema`` and ``type`` keys
+  in every test.
+
+- **max_error_collection test**: Verifies that error *details* are capped at
+  the limit, while the total ``invalid_records`` count remains accurate.
+  This prevents unbounded memory usage on very broken datasets.
+"""
 
 import json
 
@@ -17,6 +32,8 @@ from tools.validate_datasets import (
 
 
 class TestMapOdsTypeToJsonSchema:
+    # @pytest.mark.parametrize runs this test once per (ods_type, expected) pair.
+    # The test report shows each case separately, making failures easy to locate.
     @pytest.mark.parametrize(
         ("ods_type", "expected"),
         [
@@ -44,6 +61,10 @@ class TestMapOdsTypeToJsonSchema:
 
 class TestValidateDataset:
     def _make_schema(self, properties, required=None):
+        """Build a minimal JSON Schema from a properties dict.
+
+        Avoids repeating the $schema and type boilerplate in every test.
+        """
         schema = {
             "$schema": "https://json-schema.org/draft/2020-12/schema",
             "type": "object",
@@ -151,6 +172,7 @@ class TestValidateDataset:
         assert report["invalid_records"] == 0
 
     def test_max_error_collection(self, tmp_path, monkeypatch):
+        """Verify that error details are capped but invalid count is accurate."""
         monkeypatch.setattr(mod, "DATA_RAW_DIR", tmp_path)
         monkeypatch.setattr(mod, "REPO_ROOT", tmp_path)
 
@@ -164,8 +186,8 @@ class TestValidateDataset:
 
         report = validate_dataset(dataset_id, schema, max_error_collection=3)
 
-        assert report["invalid_records"] == 5
-        assert len(report["errors"]) == 3  # capped at max_error_collection
+        assert report["invalid_records"] == 5  # all 5 counted
+        assert len(report["errors"]) == 3  # details capped at max_error_collection
 
 
 # ---------------------------------------------------------------------------

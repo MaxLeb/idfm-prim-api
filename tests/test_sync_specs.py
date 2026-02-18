@@ -1,4 +1,16 @@
-"""Tests for tools/sync_specs.py."""
+"""Tests for tools/sync_specs.py.
+
+Key testing patterns used in this file:
+
+- **@respx.mock**: Decorator that intercepts httpx requests.  Routes are
+  registered with ``respx.get(url).mock(return_value=...)`` and unmatched
+  requests raise an error.
+
+- **tmp_path fixture**: pytest built-in that provides a unique temporary
+  directory for each test.  Files written here are cleaned up automatically.
+
+- **pytest.raises**: Context manager that asserts a specific exception is raised.
+"""
 
 import hashlib
 import json

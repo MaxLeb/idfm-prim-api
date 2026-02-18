@@ -1,4 +1,21 @@
-"""Tests for tools/generate_clients.py."""
+"""Tests for tools/generate_clients.py.
+
+Key testing patterns used in this file:
+
+- **@patch("module.path")**: Decorator that replaces the named object with a
+  MagicMock for the duration of the test.  The mock is passed as an extra
+  argument to the test function.  The dotted path must match how the object
+  is looked up at runtime (e.g. ``tools.generate_clients.subprocess.run``).
+
+- **side_effect**: When set on a mock, ``side_effect`` controls what happens
+  when the mock is called.  If set to an exception class, calling the mock
+  raises that exception.  If set to a function, that function is called
+  instead.
+
+- **MagicMock.return_value**: Controls what the mock returns when called.
+  ``mock_run.return_value.returncode = 0`` means ``subprocess.run(...)``
+  returns an object whose ``.returncode`` attribute is 0.
+"""
 
 import json
 from unittest.mock import patch
@@ -139,11 +156,15 @@ class TestNeedsGeneration:
 
 
 class TestCheckDockerAvailable:
+    # @patch replaces subprocess.run with a MagicMock for this test.
+    # The mock is injected as the `mock_run` parameter.
     @patch("tools.generate_clients.subprocess.run")
     def test_docker_available(self, mock_run):
         mock_run.return_value.returncode = 0
         assert check_docker_available() is True
 
+    # side_effect=FileNotFoundError means calling the mock raises that error,
+    # simulating "docker" not being on PATH.
     @patch(
         "tools.generate_clients.subprocess.run",
         side_effect=FileNotFoundError,
@@ -151,6 +172,8 @@ class TestCheckDockerAvailable:
     def test_docker_not_found(self, mock_run):
         assert check_docker_available() is False
 
+    # side_effect with a TimeoutExpired instance simulates the docker command
+    # hanging and exceeding the 5-second timeout.
     @patch(
         "tools.generate_clients.subprocess.run",
         side_effect=__import__("subprocess").TimeoutExpired(cmd="docker info", timeout=5),

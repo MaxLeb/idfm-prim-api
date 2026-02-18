@@ -30,7 +30,14 @@ DATASETS_MANIFEST = MANIFESTS_DIR / "datasets.yml"
 
 
 def load_manifest() -> dict[str, Any]:
-    """Load datasets manifest from YAML file."""
+    """Load datasets manifest from YAML file.
+
+    Returns:
+        Parsed YAML dict with a ``datasets`` key.
+
+    Raises:
+        typer.Exit: If the manifest is missing or malformed.
+    """
     if not DATASETS_MANIFEST.exists():
         console.print(f"[red]Error: Manifest not found at {DATASETS_MANIFEST}[/red]")
         raise typer.Exit(1)
@@ -46,7 +53,14 @@ def load_manifest() -> dict[str, Any]:
 
 
 def load_metadata(dataset_id: str) -> dict[str, Any] | None:
-    """Load stored metadata for a dataset."""
+    """Load the ``.meta.json`` sidecar for a dataset.
+
+    Args:
+        dataset_id: Dataset identifier (filename stem).
+
+    Returns:
+        Metadata dict, or None if missing/corrupt.
+    """
     meta_path = DATA_RAW_DIR / f"{dataset_id}.meta.json"
     if not meta_path.exists():
         return None
@@ -66,7 +80,10 @@ def save_metadata(
     last_modified: str | None,
     sha256: str,
 ) -> None:
-    """Save metadata for a dataset."""
+    """Persist download metadata to a ``.meta.json`` sidecar.
+
+    Stores ETag and Last-Modified (for conditional GET) and SHA256 (for dedup).
+    """
     meta_path = DATA_RAW_DIR / f"{dataset_id}.meta.json"
     metadata = {
         "dataset_id": dataset_id,
@@ -82,7 +99,7 @@ def save_metadata(
 
 
 def compute_sha256(file_path: Path) -> str:
-    """Compute SHA256 hash of a file."""
+    """Compute SHA256 hex digest of a file, reading in 8 KB chunks."""
     sha256_hash = hashlib.sha256()
     with file_path.open("rb") as f:
         for chunk in iter(lambda: f.read(8192), b""):
@@ -97,12 +114,22 @@ def sync_dataset(
     validate: bool,
     dry_run: bool,
 ) -> bool:
-    """
-    Sync a single dataset.
+    """Sync a single dataset from its portal.
 
-    Returns True on success, False on failure.
+    Uses the Opendatasoft Explore API v2.1 ``/exports/`` endpoint to get the
+    full dataset without pagination limits.
+
+    Args:
+        dataset_id: Opendatasoft dataset identifier.
+        portal_base: Base URL of the portal.
+        export_format: File format (e.g. ``jsonl``).
+        validate: Whether validation is configured (informational only here).
+        dry_run: If True, only show what would happen.
+
+    Returns:
+        True on success, False on failure.
     """
-    # Construct URL
+    # Construct URL using Opendatasoft Explore API v2.1 exports endpoint
     url = f"{portal_base}/api/explore/v2.1/catalog/datasets/{dataset_id}/exports/{export_format}"
     output_path = DATA_RAW_DIR / f"{dataset_id}.{export_format}"
 
@@ -113,7 +140,9 @@ def sync_dataset(
         console.print("[yellow]DRY RUN: Would download to[/yellow]", output_path)
         return True
 
-    # Load existing metadata for conditional GET
+    # Build conditional GET headers from previously stored metadata.
+    # If the server recognises the ETag or Last-Modified date, it replies
+    # 304 (Not Modified) and we skip the download.
     metadata = load_metadata(dataset_id)
     headers = {}
     if metadata:
@@ -124,7 +153,8 @@ def sync_dataset(
         console.print("[dim]Using conditional GET with stored metadata[/dim]")
 
     try:
-        # Make request with streaming
+        # Nested context managers: outer creates the HTTP client, inner opens
+        # a streaming response so we write data to disk chunk-by-chunk.
         with (
             httpx.Client(timeout=30.0, follow_redirects=True) as client,
             client.stream("GET", url, headers=headers) as response,
@@ -142,7 +172,7 @@ def sync_dataset(
             # Ensure output directory exists
             DATA_RAW_DIR.mkdir(parents=True, exist_ok=True)
 
-            # Download with progress
+            # Stream response body to file in 8 KB chunks
             console.print(f"[blue]Downloading to {output_path.name}...[/blue]")
 
             with output_path.open("wb") as f:
@@ -157,7 +187,7 @@ def sync_dataset(
             console.print("[dim]Computing SHA256 checksum...[/dim]")
             sha256 = compute_sha256(output_path)
 
-            # Extract and save metadata
+            # Extract and save metadata for next conditional GET
             etag = response.headers.get("etag")
             last_modified = response.headers.get("last-modified")
             save_metadata(dataset_id, url, etag, last_modified, sha256)
@@ -189,8 +219,7 @@ def main(
         help="Show what would be done without actually downloading",
     ),
 ) -> None:
-    """
-    Sync datasets from public portals to local storage.
+    """Sync datasets from public portals to local storage.
 
     Reads manifests/datasets.yml and downloads each dataset using conditional
     GET to avoid re-downloading unchanged files.

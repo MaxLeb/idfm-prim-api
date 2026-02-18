@@ -14,6 +14,8 @@ import json
 import os
 import sys
 
+# Add the repo root to sys.path so `from prim_api import ...` works when
+# running this script directly (e.g. `python samples/get_passages.py`).
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from prim_api import IdFMPrimAPI

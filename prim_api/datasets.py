@@ -1,3 +1,17 @@
+"""Dataset download and loading helpers.
+
+This module is used by both the CLI tools (``tools/sync_datasets.py``) and the
+Python SDK (``prim_api.client``).  It supports:
+
+- **Conditional GET**: sends ``If-None-Match`` / ``If-Modified-Since`` headers
+  so the server can reply 304 Not Modified when nothing changed, saving bandwidth.
+- **SHA256 checksums**: stored in ``.meta.json`` sidecar files for deduplication.
+- **Streaming downloads**: large datasets are written chunk-by-chunk to avoid
+  holding the entire response body in memory.
+- **JSONL loading**: each dataset is stored as JSON Lines (one JSON object per
+  line), which is simpler and more memory-friendly than a giant JSON array.
+"""
+
 import hashlib
 import json
 import logging
@@ -17,6 +31,12 @@ DATASETS_MANIFEST = MANIFESTS_DIR / "datasets.yml"
 
 
 def get_datasets_manifest() -> list[dict[str, Any]]:
+    """Read and return the list of dataset entries from ``manifests/datasets.yml``.
+
+    Returns:
+        A list of dicts, each with at least ``dataset_id`` and ``portal_base``.
+        Returns an empty list if the manifest is missing or malformed.
+    """
     if not DATASETS_MANIFEST.exists():
         logger.warning("Datasets manifest not found at %s", DATASETS_MANIFEST)
         return []
@@ -29,6 +49,7 @@ def get_datasets_manifest() -> list[dict[str, Any]]:
 
 
 def _load_metadata(dataset_id: str) -> dict[str, Any] | None:
+    """Load the ``.meta.json`` sidecar for a dataset, or None if missing."""
     meta_path = DATA_RAW_DIR / f"{dataset_id}.meta.json"
     if not meta_path.exists():
         return None
@@ -46,6 +67,11 @@ def _save_metadata(
     last_modified: str | None,
     sha256: str,
 ) -> None:
+    """Persist download metadata to a ``.meta.json`` sidecar file.
+
+    The metadata enables conditional GET on the next sync (ETag, Last-Modified)
+    and content deduplication (SHA256).
+    """
     meta_path = DATA_RAW_DIR / f"{dataset_id}.meta.json"
     metadata = {
         "dataset_id": dataset_id,
@@ -60,18 +86,40 @@ def _save_metadata(
 
 
 def _compute_sha256(file_path: Path) -> str:
+    """Compute the SHA256 hex digest of a file, reading in 8 KB chunks.
+
+    Reading in chunks keeps memory usage constant regardless of file size.
+    """
     sha256_hash = hashlib.sha256()
     with file_path.open("rb") as f:
+        # iter(callable, sentinel) calls the lambda repeatedly until it returns
+        # the sentinel value (b"" = empty bytes = end of file).
         for chunk in iter(lambda: f.read(8192), b""):
             sha256_hash.update(chunk)
     return sha256_hash.hexdigest()
 
 
 def ensure_dataset(dataset_id: str, portal_base: str, export_format: str = "jsonl") -> bool:
+    """Download a dataset if it has changed since the last sync.
+
+    Uses the Opendatasoft Explore API v2.1 ``/exports/`` endpoint (not
+    ``/records/``) to get the full dataset without pagination limits.
+
+    Args:
+        dataset_id: Opendatasoft dataset identifier.
+        portal_base: Base URL of the portal (e.g. ``https://data.iledefrance-mobilites.fr``).
+        export_format: Export format (default ``jsonl``).
+
+    Returns:
+        True on success (downloaded or already up-to-date), False on error.
+    """
     url = f"{portal_base}/api/explore/v2.1/catalog/datasets/{dataset_id}/exports/{export_format}"
     output_path = DATA_RAW_DIR / f"{dataset_id}.{export_format}"
 
     metadata = _load_metadata(dataset_id)
+
+    # Build conditional GET headers from previously stored metadata.
+    # If the server recognises the ETag or date, it replies 304 (not modified).
     headers: dict[str, str] = {}
     if metadata:
         if metadata.get("etag"):
@@ -80,6 +128,9 @@ def ensure_dataset(dataset_id: str, portal_base: str, export_format: str = "json
             headers["If-Modified-Since"] = metadata["last_modified"]
 
     try:
+        # Nested context managers: the outer one creates (and later closes) the
+        # HTTP client; the inner one opens a *streaming* response so we can
+        # write data to disk chunk-by-chunk without buffering the whole body.
         with (
             httpx.Client(timeout=30.0, follow_redirects=True) as client,
             client.stream("GET", url, headers=headers) as response,
@@ -94,6 +145,7 @@ def ensure_dataset(dataset_id: str, portal_base: str, export_format: str = "json
 
             DATA_RAW_DIR.mkdir(parents=True, exist_ok=True)
 
+            # Stream response body to file in 8 KB chunks
             with output_path.open("wb") as f:
                 for chunk in response.iter_bytes(chunk_size=8192):
                     f.write(chunk)
@@ -112,6 +164,7 @@ def ensure_dataset(dataset_id: str, portal_base: str, export_format: str = "json
 
 
 def ensure_all_datasets() -> None:
+    """Download all datasets listed in the manifest (skipping up-to-date ones)."""
     datasets = get_datasets_manifest()
     for ds in datasets:
         dataset_id = ds.get("dataset_id")
@@ -122,6 +175,18 @@ def ensure_all_datasets() -> None:
 
 
 def load_dataset(dataset_id: str, export_format: str = "jsonl") -> list[dict[str, Any]]:
+    """Load a previously downloaded dataset from its local JSONL file.
+
+    JSONL (JSON Lines) stores one JSON object per line.  This is simpler and
+    more streaming-friendly than a single large JSON array.
+
+    Args:
+        dataset_id: Dataset identifier (matches the filename stem).
+        export_format: File extension (default ``jsonl``).
+
+    Returns:
+        List of record dicts, or an empty list if the file does not exist.
+    """
     file_path = DATA_RAW_DIR / f"{dataset_id}.{export_format}"
     if not file_path.exists():
         return []

@@ -28,7 +28,20 @@ DATA_REPORTS_DIR = REPO_ROOT / "data" / "reports"
 
 
 def map_ods_type_to_json_schema(ods_type: str) -> dict[str, Any]:
-    """Map Opendatasoft field type to JSON Schema property definition."""
+    """Convert an Opendatasoft field type to a JSON Schema property definition.
+
+    Opendatasoft uses its own type system (text, int, double, geo_point_2d, etc.)
+    that doesn't map 1:1 to JSON Schema types.  This function bridges the gap
+    so we can validate exported JSONL records with standard ``jsonschema``.
+
+    Every type allows ``null`` because ODS fields are nullable by default.
+
+    Args:
+        ods_type: Opendatasoft type string (e.g. ``"text"``, ``"int"``).
+
+    Returns:
+        JSON Schema property definition dict.
+    """
     type_mapping = {
         "text": {"type": ["string", "null"]},
         "int": {"type": ["integer", "null"]},
@@ -43,7 +56,15 @@ def map_ods_type_to_json_schema(ods_type: str) -> dict[str, Any]:
 
 
 def fetch_schema_from_override(schema_url: str, client: httpx.Client) -> dict[str, Any]:
-    """Fetch schema from a direct URL override."""
+    """Fetch a pre-built JSON Schema from a direct URL.
+
+    Args:
+        schema_url: URL pointing to a JSON Schema file.
+        client: Shared httpx client.
+
+    Returns:
+        Parsed JSON Schema dict.
+    """
     console.print(f"  [cyan]Fetching schema from override URL: {schema_url}[/cyan]")
     response = client.get(schema_url)
     response.raise_for_status()
@@ -53,7 +74,20 @@ def fetch_schema_from_override(schema_url: str, client: httpx.Client) -> dict[st
 def fetch_schema_from_api(
     portal_base: str, dataset_id: str, client: httpx.Client
 ) -> dict[str, Any]:
-    """Fetch dataset metadata from Opendatasoft API and convert to JSON Schema."""
+    """Build a JSON Schema from Opendatasoft API dataset metadata.
+
+    Fetches the dataset metadata (which includes field names and ODS types),
+    then converts each field to a JSON Schema property using
+    ``map_ods_type_to_json_schema``.
+
+    Args:
+        portal_base: Base URL of the ODS portal.
+        dataset_id: Dataset identifier.
+        client: Shared httpx client.
+
+    Returns:
+        Generated JSON Schema dict.
+    """
     api_url = f"{portal_base}/api/explore/v2.1/catalog/datasets/{dataset_id}"
     console.print(f"  [cyan]Fetching metadata from: {api_url}[/cyan]")
 
@@ -61,7 +95,7 @@ def fetch_schema_from_api(
     response.raise_for_status()
     metadata = response.json()
 
-    # Extract fields array and convert to JSON Schema
+    # Extract fields array and convert each ODS field to a JSON Schema property
     fields = metadata.get("fields", [])
     properties = {}
 
@@ -85,7 +119,17 @@ def get_or_fetch_schema(
     schema_url_override: str | None,
     client: httpx.Client,
 ) -> dict[str, Any]:
-    """Get schema for a dataset, fetching if necessary."""
+    """Get a JSON Schema for a dataset, building it from API metadata if needed.
+
+    Args:
+        dataset_id: Dataset identifier.
+        portal_base: Base URL of the ODS portal.
+        schema_url_override: Optional direct URL to a pre-built schema.
+        client: Shared httpx client.
+
+    Returns:
+        JSON Schema dict (also saved to data/schema/).
+    """
     schema_path = DATA_SCHEMA_DIR / f"{dataset_id}.schema.json"
 
     # Try to fetch schema
@@ -94,7 +138,7 @@ def get_or_fetch_schema(
     else:
         schema = fetch_schema_from_api(portal_base, dataset_id, client)
 
-    # Save schema
+    # Save schema for reference
     DATA_SCHEMA_DIR.mkdir(parents=True, exist_ok=True)
     with open(schema_path, "w", encoding="utf-8") as f:
         json.dump(schema, f, indent=2, ensure_ascii=False)
@@ -108,7 +152,21 @@ def validate_dataset(
     schema: dict[str, Any],
     max_error_collection: int = 100,
 ) -> dict[str, Any]:
-    """Validate dataset records against schema."""
+    """Validate every record in a JSONL dataset against a JSON Schema.
+
+    Each line of the JSONL file is parsed and validated independently.
+    Errors are collected up to ``max_error_collection`` to avoid unbounded
+    memory usage on very broken datasets.
+
+    Args:
+        dataset_id: Dataset identifier (filename stem).
+        schema: JSON Schema to validate against.
+        max_error_collection: Stop collecting error details after this many
+            (the count of invalid records is still accurate).
+
+    Returns:
+        Report dict with total_records, valid_records, invalid_records, errors.
+    """
     data_file = DATA_RAW_DIR / f"{dataset_id}.jsonl"
 
     if not data_file.exists():
@@ -133,10 +191,13 @@ def validate_dataset(
 
             try:
                 record = json.loads(line.strip())
+                # jsonschema.validate() raises ValidationError if the record
+                # doesn't match the schema.
                 jsonschema.validate(instance=record, schema=schema)
                 valid_records += 1
             except json.JSONDecodeError as e:
                 invalid_records += 1
+                # Cap error collection to avoid unbounded memory on bad data
                 if len(errors) < max_error_collection:
                     errors.append(
                         {
@@ -166,7 +227,15 @@ def validate_dataset(
 
 
 def save_validation_report(dataset_id: str, report: dict[str, Any]) -> Path:
-    """Save validation report to file."""
+    """Write the validation report to ``data/reports/<id>.validation.json``.
+
+    Args:
+        dataset_id: Dataset identifier.
+        report: Report dict from ``validate_dataset()``.
+
+    Returns:
+        Path to the saved report file.
+    """
     DATA_REPORTS_DIR.mkdir(parents=True, exist_ok=True)
     report_path = DATA_REPORTS_DIR / f"{dataset_id}.validation.json"
 
@@ -189,10 +258,10 @@ def validate(
         help="Maximum acceptable validation errors (0 = any error fails)",
     ),
 ) -> None:
-    """
-    Validate datasets against their schemas.
+    """Validate datasets against their schemas.
 
-    Reads manifests/datasets.yml and validates each dataset marked with validate: true.
+    Reads manifests/datasets.yml and validates each dataset marked with
+    ``validate: true``.
     """
     manifest_path = MANIFESTS_DIR / "datasets.yml"
 

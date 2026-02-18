@@ -23,10 +23,16 @@ console = Console()
 
 
 def check_docker_available() -> bool:
-    """Check if Docker is available and running."""
+    """Check if Docker is available and running.
+
+    Returns:
+        True if ``docker info`` exits successfully.
+    """
     try:
         result = subprocess.run(
             ["docker", "info"],
+            # capture_output=True captures stdout and stderr into result.stdout
+            # and result.stderr instead of printing to the terminal.
             capture_output=True,
             timeout=5,
         )
@@ -36,7 +42,14 @@ def check_docker_available() -> bool:
 
 
 def get_spec_hash(meta_path: Path) -> str | None:
-    """Read sha256 hash from meta.json file."""
+    """Read the SHA256 hash from a ``.meta.json`` sidecar file.
+
+    Args:
+        meta_path: Path to the meta JSON file.
+
+    Returns:
+        SHA256 hex string, or None if missing/invalid.
+    """
     try:
         with meta_path.open("r") as f:
             meta = json.load(f)
@@ -46,7 +59,10 @@ def get_spec_hash(meta_path: Path) -> str | None:
 
 
 def get_current_client_hash(client_dir: Path) -> str | None:
-    """Read current hash from .spec_hash file in client directory."""
+    """Read the spec hash that was used to generate the current client.
+
+    The hash is stored in a ``.spec_hash`` file inside the client directory.
+    """
     hash_file = client_dir / ".spec_hash"
     try:
         return hash_file.read_text().strip()
@@ -55,7 +71,7 @@ def get_current_client_hash(client_dir: Path) -> str | None:
 
 
 def write_client_hash(client_dir: Path, sha256: str) -> None:
-    """Write sha256 hash to .spec_hash file in client directory."""
+    """Record the spec hash used for client generation (for change detection)."""
     hash_file = client_dir / ".spec_hash"
     hash_file.write_text(sha256)
 
@@ -65,11 +81,13 @@ def needs_generation(
     meta_path: Path,
     client_dir: Path,
 ) -> tuple[bool, str | None]:
-    """
-    Determine if client generation is needed.
+    """Determine if client generation is needed.
+
+    Compares the spec's SHA256 hash (from ``.meta.json``) against the hash
+    stored in the client directory's ``.spec_hash`` file.
 
     Returns:
-        Tuple of (needs_generation, spec_hash)
+        Tuple of (needs_generation, spec_hash).
     """
     # Get spec hash from meta file
     spec_hash = get_spec_hash(meta_path)
@@ -95,31 +113,46 @@ def generate_client(
     api_name: str,
     dry_run: bool = False,
 ) -> bool:
-    """
-    Generate Python client using OpenAPI Generator Docker image.
+    """Generate a Python client using the OpenAPI Generator Docker image.
+
+    Docker flags explained:
+    - ``--rm``: automatically remove the container after it exits (cleanup).
+    - ``--user UID:GID``: run the generator as the current user so that
+      generated files are owned by us, not by root.
+    - ``-v /host/path:/local``: mount the repo directory into the container
+      so the generator can read specs and write output.
+    - Image tag ``v7.4.0``: pinned version for reproducible builds.
+    - ``--skip-validate-spec``: skip OpenAPI validation (some PRIM specs have
+      minor issues that would fail strict validation but generate fine).
+
+    Args:
+        repo_root: Absolute path to the repository root.
+        spec_path: Path to the OpenAPI spec JSON file.
+        api_name: Name for the generated package.
+        dry_run: If True, only print the command.
 
     Returns:
-        True if generation succeeded, False otherwise
+        True if generation succeeded, False otherwise.
     """
     docker_cmd = [
         "docker",
         "run",
-        "--rm",
+        "--rm",  # remove container after exit
         "--user",
-        f"{os.getuid()}:{os.getgid()}",
+        f"{os.getuid()}:{os.getgid()}",  # match host user for file ownership
         "-v",
-        f"{repo_root}:/local",
-        "openapitools/openapi-generator-cli:v7.4.0",
+        f"{repo_root}:/local",  # mount repo into container
+        "openapitools/openapi-generator-cli:v7.4.0",  # pinned generator version
         "generate",
         "-i",
-        f"/local/specs/{spec_path.name}",
+        f"/local/specs/{spec_path.name}",  # input spec (inside container)
         "-g",
-        "python",
+        "python",  # target language
         "-o",
-        f"/local/clients/{api_name}",
+        f"/local/clients/{api_name}",  # output directory (inside container)
         "--package-name",
         api_name,
-        "--skip-validate-spec",
+        "--skip-validate-spec",  # tolerate minor spec issues
     ]
 
     if dry_run:
@@ -129,6 +162,8 @@ def generate_client(
     try:
         result = subprocess.run(
             docker_cmd,
+            # capture_output=True prevents Docker's verbose output from
+            # flooding the terminal; we only show it on error.
             capture_output=True,
             text=True,
             timeout=300,  # 5 minute timeout
@@ -149,6 +184,8 @@ def generate_client(
         return False
 
 
+# @app.command() turns this function into the CLI entry point.
+# Typer reads the type hints and default values to generate --help text.
 @app.command()
 def main(
     dry_run: bool = typer.Option(
@@ -186,10 +223,8 @@ def main(
         )
         raise typer.Exit(1)
 
-    # Find all OpenAPI spec files
+    # Find all OpenAPI spec files (exclude .meta.json sidecars)
     spec_files = sorted(specs_dir.glob("*.json"))
-
-    # Filter out .meta.json files
     spec_files = [f for f in spec_files if not f.name.endswith(".meta.json")]
 
     if not spec_files:
@@ -211,14 +246,14 @@ def main(
 
     # Process each spec
     for spec_path in spec_files:
-        # Derive API name from spec filename
+        # Derive API name from spec filename (e.g. "my_api.json" → "my_api")
         api_name = spec_path.stem
         meta_path = specs_dir / f"{api_name}.meta.json"
         client_dir = clients_dir / api_name
 
         console.print(f"\n[bold]{api_name}[/bold]")
 
-        # Check if generation is needed
+        # Check if generation is needed (compare spec hash vs client hash)
         needs_gen, spec_hash = needs_generation(spec_path, meta_path, client_dir)
 
         if not needs_gen:
@@ -236,7 +271,7 @@ def main(
 
         if generate_client(repo_root, spec_path, api_name, dry_run):
             if not dry_run:
-                # Write hash file
+                # Write hash file so we can skip generation next time
                 client_dir.mkdir(exist_ok=True)
                 write_client_hash(client_dir, spec_hash)
 

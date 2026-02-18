@@ -1,0 +1,176 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "id_line": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "name_line": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "shortname_line": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "transportmode": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "transportsubmode": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "type": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "operatorref": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "operatorname": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "additionaloperators": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "networkname": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "colourweb_hexa": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "textcolourweb_hexa": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "colourprint_cmjn": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "textcolourprint_hexa": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "accessibility": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "audiblesigns_available": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "visualsigns_available": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "id_groupoflines": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "shortname_groupoflines": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "notice_title": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "notice_text": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "picto": {
+      "type": [
+        "object",
+        "null"
+      ]
+    },
+    "valid_fromdate": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date"
+    },
+    "valid_todate": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date"
+    },
+    "status": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "privatecode": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "air_conditioning": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "id_bus_contrat": {
+      "type": [
+        "integer",
+        "null"
+      ]
+    }
+  }
+}

@@ -1,4 +1,16 @@
-"""Tests for tools/sync_datasets.py."""
+"""Tests for tools/sync_datasets.py.
+
+Key testing patterns used in this file:
+
+- **monkeypatch.setattr(mod, "ATTR", value)**: Replaces a module-level
+  constant (like DATA_RAW_DIR or DATASETS_MANIFEST) with a test-specific
+  value for the duration of the test.  This lets us redirect file I/O to
+  tmp_path without touching the real filesystem.
+
+- **@respx.mock**: Intercepts httpx requests.  Routes are registered with
+  ``respx.get(url).mock(return_value=httpx.Response(...))`` and the
+  decorator asserts no unmatched HTTP calls are made.
+"""
 
 import hashlib
 import json
@@ -32,6 +44,7 @@ class TestLoadManifest:
                 }
             )
         )
+        # Point the module's DATASETS_MANIFEST constant to our temp file
         monkeypatch.setattr(mod, "DATASETS_MANIFEST", manifest)
         result = load_manifest()
         assert "datasets" in result
@@ -115,7 +128,7 @@ class TestSyncDataset:
     def test_304_not_modified(self, tmp_path, monkeypatch):
         monkeypatch.setattr(mod, "DATA_RAW_DIR", tmp_path)
 
-        # Pre-populate metadata
+        # Pre-populate metadata so conditional GET headers are sent
         meta_path = tmp_path / "test_ds.meta.json"
         meta_path.write_text(
             json.dumps({"etag": '"etag123"', "last_modified": "Mon, 01 Jan 2024 00:00:00 GMT"})

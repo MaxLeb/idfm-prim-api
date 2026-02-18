@@ -25,24 +25,37 @@ import yaml
 from rich.console import Console
 
 console = Console()
+
+# @app.command() below registers functions as CLI sub-commands.
+# Typer converts the function signature (arguments, type hints, defaults)
+# into CLI flags automatically.
 app = typer.Typer(help="Sync API specifications from configured sources")
 
-# Regex patterns to find OpenAPI/Swagger JSON URLs in HTML
+# Regex patterns to find OpenAPI/Swagger JSON URLs embedded in HTML pages.
+# Each pattern targets a common URL shape used by API portals.
+# They are tried in order; the first match wins.
 SPEC_URL_PATTERNS = [
-    r'https?://[^\s"\'<>]+?(?:openapi|swagger)[^\s"\'<>]*?\.json',
-    r'https?://[^\s"\'<>]+?/spec(?:/|\.json)',
-    r'https?://[^\s"\'<>]+?/api-docs(?:/|\.json)',
-    r'https?://[^\s"\'<>]+?/swagger\?[^\s"\'<>]+',
+    r'https?://[^\s"\'<>]+?(?:openapi|swagger)[^\s"\'<>]*?\.json',  # .../openapi.json
+    r'https?://[^\s"\'<>]+?/spec(?:/|\.json)',  # .../spec or .../spec.json
+    r'https?://[^\s"\'<>]+?/api-docs(?:/|\.json)',  # .../api-docs.json
+    r'https?://[^\s"\'<>]+?/swagger\?[^\s"\'<>]+',  # .../swagger?name=...
 ]
 
 
 def compute_sha256(content: bytes) -> str:
-    """Compute SHA256 hash of content."""
+    """Compute SHA256 hex digest of in-memory bytes."""
     return hashlib.sha256(content).hexdigest()
 
 
 def load_manifest(manifest_path: Path) -> dict[str, Any]:
-    """Load and parse the APIs manifest YAML file."""
+    """Load and parse the APIs manifest YAML file.
+
+    Args:
+        manifest_path: Path to manifests/apis.yml.
+
+    Returns:
+        Dict mapping API names to their config dicts.
+    """
     if not manifest_path.exists():
         console.print(f"[red]Error:[/red] Manifest not found: {manifest_path}")
         sys.exit(1)
@@ -58,7 +71,7 @@ def load_manifest(manifest_path: Path) -> dict[str, Any]:
 
 
 def load_metadata(meta_path: Path) -> dict[str, Any]:
-    """Load existing metadata if available."""
+    """Load existing .meta.json sidecar, or return empty dict if missing."""
     if not meta_path.exists():
         return {}
 
@@ -71,18 +84,32 @@ def load_metadata(meta_path: Path) -> dict[str, Any]:
 
 
 def save_metadata(meta_path: Path, metadata: dict[str, Any]) -> None:
-    """Save metadata to JSON file."""
+    """Write metadata dict to a JSON sidecar file."""
     with meta_path.open("w") as f:
         json.dump(metadata, f, indent=2)
 
 
 def extract_spec_url_from_html(html_content: str) -> str | None:
-    """Extract OpenAPI/Swagger spec URL from HTML using regex patterns."""
-    # Try extracting swaggerUrl from embedded JSON/JS (PRIM Gravitee portal)
+    """Extract an OpenAPI/Swagger spec URL from an HTML page.
+
+    The PRIM Gravitee portal embeds the spec URL in a JSON blob inside the
+    page's JavaScript.  We first try to match the ``"swaggerUrl"`` key, which
+    is the most reliable signal.  If that fails, we fall back to generic regex
+    patterns that match common OpenAPI URL shapes.
+
+    Args:
+        html_content: Raw HTML string to search.
+
+    Returns:
+        Extracted URL string, or None if nothing matched.
+    """
+    # Priority 1: look for "swaggerUrl":"https://..." in embedded JSON/JS.
+    # This is the format used by the PRIM Gravitee portal.
     m = re.search(r'"swaggerUrl"\s*:\s*"(https?://[^"]+)"', html_content)
     if m:
         return m.group(1)
 
+    # Priority 2: try generic URL patterns
     for pattern in SPEC_URL_PATTERNS:
         matches = re.findall(pattern, html_content, re.IGNORECASE)
         if matches:
@@ -95,9 +122,18 @@ def fetch_spec_url_from_prim_page(
     client: httpx.Client,
     spec_url_override: str | None = None,
 ) -> str | None:
-    """
-    Fetch a Prim page and extract the spec URL.
-    Falls back to spec_url_override if extraction fails.
+    """Fetch a PRIM portal page and extract the spec URL from its HTML.
+
+    Falls back to ``spec_url_override`` (from the manifest) if the regex
+    extraction fails.
+
+    Args:
+        page_url: URL of the portal page to scrape.
+        client: Shared httpx client.
+        spec_url_override: Manual fallback URL from the manifest.
+
+    Returns:
+        Extracted or overridden spec URL, or None on failure.
     """
     try:
         response = client.get(page_url, follow_redirects=True)
@@ -127,14 +163,24 @@ def fetch_spec(
     client: httpx.Client,
     existing_meta: dict[str, Any],
 ) -> tuple[bytes | None, dict[str, Any]]:
-    """
-    Fetch spec content with conditional GET support.
-    Returns (content, response_metadata).
-    Content is None if not modified (304).
+    """Fetch spec content using conditional GET.
+
+    Sends ``If-None-Match`` (ETag) and ``If-Modified-Since`` headers from
+    previously stored metadata.  The server may reply 304 Not Modified,
+    meaning the spec hasn't changed and we can skip the download.
+
+    Args:
+        spec_url: URL of the OpenAPI spec.
+        client: Shared httpx client.
+        existing_meta: Previously stored metadata dict (may be empty).
+
+    Returns:
+        Tuple of (content_bytes_or_None, metadata_dict).
+        Content is None when the server returns 304.
     """
     headers = {}
 
-    # Add conditional headers if available
+    # Conditional GET headers — tell the server what version we already have
     if "etag" in existing_meta:
         headers["If-None-Match"] = existing_meta["etag"]
     if "last_modified" in existing_meta:
@@ -143,13 +189,13 @@ def fetch_spec(
     try:
         response = client.get(spec_url, headers=headers, follow_redirects=True)
 
-        # 304 Not Modified
+        # 304 Not Modified — our cached version is still current
         if response.status_code == 304:
             return None, existing_meta
 
         response.raise_for_status()
 
-        # Extract response metadata
+        # Capture response headers for next conditional GET
         metadata = {
             "url": str(response.url),
             "timestamp": datetime.now(UTC).isoformat(),
@@ -174,19 +220,27 @@ def sync_api(
     client: httpx.Client,
     dry_run: bool = False,
 ) -> bool:
-    """
-    Sync a single API specification.
-    Returns True on success, False on failure.
+    """Sync a single API specification.
+
+    Args:
+        api_name: Identifier for this API (used as filename stem).
+        api_config: Config dict from the manifest (type, spec_url, etc.).
+        specs_dir: Directory to write spec + meta files.
+        client: Shared httpx client.
+        dry_run: If True, resolve the URL but don't download.
+
+    Returns:
+        True on success, False on failure.
     """
     console.print(f"\n[bold cyan]{api_name}[/bold cyan]")
 
     spec_path = specs_dir / f"{api_name}.json"
     meta_path = specs_dir / f"{api_name}.meta.json"
 
-    # Load existing metadata
+    # Load existing metadata (for conditional GET and SHA256 dedup)
     existing_meta = load_metadata(meta_path)
 
-    # Determine spec URL
+    # Determine spec URL based on manifest entry type
     api_type = api_config.get("type")
     spec_url = None
 
@@ -197,6 +251,8 @@ def sync_api(
             return False
 
     elif api_type == "prim_page":
+        # For prim_page entries, we first scrape the portal HTML to find the
+        # actual spec URL.  spec_url_override is a manual fallback.
         page_url = api_config.get("page_url")
         if not page_url:
             console.print("  [red]Error:[/red] type=prim_page but no page_url provided")
@@ -231,10 +287,10 @@ def sync_api(
         console.print("  [red]✗[/red] Failed to fetch")
         return False
 
-    # Compute SHA256
+    # SHA256 deduplication — even if the server doesn't support conditional
+    # GET (no ETag/304), we can still detect unchanged content via hash.
     sha256 = compute_sha256(content)
 
-    # Check if content changed
     if existing_meta.get("sha256") == sha256:
         console.print("  [green]✓[/green] Content unchanged (SHA256 match)")
         # Update metadata timestamp but keep same content
@@ -259,6 +315,8 @@ def sync_api(
         return False
 
 
+# @app.command() registers this function as the default CLI command.
+# Typer reads the function signature and creates --dry-run automatically.
 @app.command()
 def main(
     dry_run: bool = typer.Option(
@@ -283,7 +341,7 @@ def main(
     apis = load_manifest(manifest_path)
     console.print(f"Found {len(apis)} API(s)")
 
-    # Setup HTTP client
+    # Setup HTTP client — auth header is toggled per-API below
     prim_token = os.getenv("PRIM_TOKEN")
     headers = {}
 
@@ -296,7 +354,9 @@ def main(
     # Sync each API
     results = {}
     for api_name, api_config in apis.items():
-        # Update auth header if needed
+        # Toggle Bearer auth per-API: only add the header when the manifest
+        # entry declares auth: prim_token.  Remove it otherwise so that
+        # unauthenticated APIs don't accidentally send the token.
         if api_config.get("auth") == "prim_token":
             if prim_token:
                 client.headers["Authorization"] = f"Bearer {prim_token}"
@@ -305,7 +365,6 @@ def main(
                     f"[yellow]Warning:[/yellow] {api_name} requires PRIM_TOKEN but not set"
                 )
         else:
-            # Remove auth header if present
             client.headers.pop("Authorization", None)
 
         results[api_name] = sync_api(api_name, api_config, specs_dir, client, dry_run)

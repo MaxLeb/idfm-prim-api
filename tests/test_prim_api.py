@@ -1,4 +1,23 @@
-"""Tests for the prim_api package (updater, datasets, client)."""
+"""Tests for the prim_api package (updater, datasets, client).
+
+Key testing patterns used in this file:
+
+- **sys.modules injection** (lines below): The generated client package
+  (idfm_ivtr_requete_unitaire) depends on pydantic and may not be installed
+  in the test environment.  We inject MagicMock objects into sys.modules
+  BEFORE importing prim_api, so Python thinks the package is already loaded
+  and never tries to actually import it.
+
+- **monkeypatch.setattr**: Replaces a module-level attribute (e.g. DATA_RAW_DIR)
+  for the duration of a single test, then restores the original automatically.
+
+- **@respx.mock**: Decorator that intercepts all httpx requests within the test.
+  Unmatched requests raise an error, ensuring no real HTTP calls are made.
+
+- **patch.object**: Context manager that temporarily replaces an attribute on a
+  module or class.  Used here to mock generated client classes (Configuration,
+  ApiClient, DefaultApi) during IdFMPrimAPI tests.
+"""
 
 import hashlib
 import json
@@ -8,10 +27,13 @@ from unittest.mock import MagicMock, patch
 import httpx
 import respx
 
-# The generated client (idfm_ivtr_requete_unitaire) depends on pydantic which
-# may not be installed in the test environment.  Inject mock modules into
-# sys.modules BEFORE any prim_api import so that prim_api.__init__ (which
-# imports prim_api.client -> idfm_ivtr_requete_unitaire) does not fail.
+# ---------------------------------------------------------------------------
+# sys.modules injection — mock the generated client before any prim_api import
+# ---------------------------------------------------------------------------
+# MagicMock auto-creates nested attributes on access, so
+# _mock_gen_client.api.default_api works without explicit setup.
+# sys.modules.setdefault() inserts the mock only if the key is absent,
+# so this is safe to run even if the real package happens to be installed.
 _mock_gen_client = MagicMock()
 _GEN_CLIENT_MODULES = {
     "idfm_ivtr_requete_unitaire": _mock_gen_client,
@@ -21,6 +43,8 @@ _GEN_CLIENT_MODULES = {
 for _name, _mod in _GEN_CLIENT_MODULES.items():
     sys.modules.setdefault(_name, _mod)
 
+# These imports MUST come after the sys.modules injection above.
+# noqa: E402 suppresses "module level import not at top of file".
 import prim_api.client as client_mod  # noqa: E402
 import prim_api.datasets as ds_mod  # noqa: E402
 from prim_api.updater import DatasetUpdater  # noqa: E402
@@ -61,6 +85,8 @@ class TestDatasetUpdater:
 
 class TestLoadDataset:
     def test_load_dataset_reads_jsonl(self, tmp_path, monkeypatch):
+        # monkeypatch.setattr replaces ds_mod.DATA_RAW_DIR with tmp_path
+        # for this test only.  After the test, the original value is restored.
         monkeypatch.setattr(ds_mod, "DATA_RAW_DIR", tmp_path)
         records = [{"id": 1, "name": "a"}, {"id": 2, "name": "b"}]
         (tmp_path / "test-ds.jsonl").write_text("\n".join(json.dumps(r) for r in records) + "\n")
@@ -80,6 +106,9 @@ class TestLoadDataset:
 
 
 class TestEnsureDataset:
+    # @respx.mock intercepts all httpx requests inside this test method.
+    # We register expected URLs with respx.get(...).mock(...) and the
+    # decorator asserts all registered routes were called.
     @respx.mock
     def test_ensure_dataset_downloads(self, tmp_path, monkeypatch):
         monkeypatch.setattr(ds_mod, "DATA_RAW_DIR", tmp_path)
@@ -140,6 +169,9 @@ class TestEnsureDataset:
 
 class TestIdFMPrimAPI:
     def test_init_no_auto_sync(self):
+        # patch.object temporarily replaces an attribute on a module/class.
+        # Here we mock all generated client classes and ensure_all_datasets
+        # so the test doesn't require the real generated client or network.
         with (
             patch.object(client_mod, "Configuration") as mock_cfg,
             patch.object(client_mod, "ApiClient") as mock_ac,

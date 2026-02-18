@@ -1,0 +1,84 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "route_long_name": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "stop_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "stop_name": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "stop_lon": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "stop_lat": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "operatorname": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "shortname": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "bookingrules": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "mode": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "pointgeo": {
+      "type": [
+        "object",
+        "null"
+      ]
+    },
+    "nom_commune": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "code_insee": {
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  }
+}
