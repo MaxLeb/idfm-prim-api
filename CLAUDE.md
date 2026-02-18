@@ -36,10 +36,10 @@ uv run python tools/sync_all.py  # full sync pipeline
 
 ```
 manifests/          # YAML manifests driving all sync (apis.yml, datasets.yml, urls_of_interest.yml)
-specs/              # Downloaded OpenAPI/Swagger JSON (committed) + .meta.json (gitignored)
-clients/            # Generated Python clients (committed)
+specs/              # Downloaded OpenAPI/Swagger JSON + .meta.json (committed)
+clients/            # Generated Python clients (committed, excluded from ruff)
 data/schema/        # JSON Schemas for datasets (committed)
-data/raw/           # Downloaded dataset exports, .jsonl + .meta.json (gitignored)
+data/raw/           # Downloaded dataset exports, .jsonl + .meta.json (gitignored, dev-only)
 data/reports/       # Validation reports (gitignored)
 tools/              # CLI scripts: sync_specs, generate_clients, sync_datasets, validate_datasets, sync_all
 ```
@@ -59,4 +59,4 @@ tools/              # CLI scripts: sync_specs, generate_clients, sync_datasets, 
 ## CI (GitHub Actions)
 
 - **ci.yml** — on PR/push: install, test, lint, dry-run sync.
-- **nightly-sync.yml** — nightly at 02:00 Europe/Paris: full sync, auto-open PR if changes detected (via `peter-evans/create-pull-request`).
+- **nightly-sync.yml** — nightly at 02:00 Europe/Paris: sync specs + regenerate clients, auto-open PR if changes detected. Dataset sync is not part of nightly (devs download on demand).

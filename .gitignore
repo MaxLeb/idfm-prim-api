@@ -11,13 +11,9 @@ build/
 # uv
 uv.lock
 
-# Raw dataset exports and validation reports (large, regenerable)
+# Dataset artifacts (large, downloaded on demand by devs)
 data/raw/
 data/reports/
-
-# Spec/client metadata (regenerable cache)
-specs/*.meta.json
-clients/*/.spec_hash
 
 # IDE
 .idea/

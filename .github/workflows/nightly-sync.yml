@@ -22,21 +22,22 @@ jobs:
       - name: Install dependencies
         run: uv sync
 
-      - name: Run full sync pipeline
+      - name: Sync specs
         env:
           PRIM_TOKEN: ${{ secrets.PRIM_TOKEN }}
-        run: uv run python -m tools.sync_all
+        run: uv run python -m tools.sync_specs
+
+      - name: Generate clients
+        run: uv run python -m tools.generate_clients
 
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v6
         with:
-          commit-message: "chore: update PRIM specs, clients, and datasets"
-          title: "chore: update PRIM specs, clients, and datasets"
+          commit-message: "chore: update PRIM specs and clients"
+          title: "chore: update PRIM specs and clients"
           body: |
             Automated nightly sync of:
             - OpenAPI/Swagger specs from PRIM
             - Generated Python clients
-            - Opendatasoft dataset exports
-            - Dataset validation reports
           branch: automated/nightly-sync
           delete-branch: true

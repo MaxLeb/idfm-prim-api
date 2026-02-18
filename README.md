@@ -44,14 +44,13 @@ tools/              # CLI scripts
 - Tests (`tests/`)
 - CI workflows (`.github/workflows/`)
 - Project config (`pyproject.toml`, `.gitignore`)
-- OpenAPI specs (`specs/*.json`) — updated by nightly sync
+- OpenAPI specs + metadata (`specs/`) — updated by nightly sync
 - Generated Python clients (`clients/`) — regenerated when specs change
 - Dataset schemas (`data/schema/`) — kept in sync with portal metadata
 
-**Gitignored (large/volatile artifacts):**
+**Gitignored (downloaded on demand by devs):**
 - `data/raw/` — dataset exports (JSONL, can be large)
 - `data/reports/` — validation reports
-- `specs/*.meta.json`, `clients/*/.spec_hash` — internal cache files
 
 ## Setup
 
@@ -133,9 +132,11 @@ Runs on every PR and push to `main`:
 
 Runs nightly at 01:00 UTC (≈ 02:00 Europe/Paris):
 
-1. Runs the full sync pipeline
-2. Opens a PR automatically if any specs, clients, or datasets changed
-3. PR is titled "chore: update PRIM specs, clients, and datasets"
+1. Syncs OpenAPI/Swagger specs from PRIM
+2. Regenerates Python clients if specs changed
+3. Opens a PR automatically if anything changed
+
+Dataset sync is **not** part of the nightly — devs download data locally on demand via `uv run sync-datasets`.
 
 ## Manifest format
 
