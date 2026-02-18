@@ -43,6 +43,9 @@ class IdFMPrimAPI:
     def get_referentiel_lignes(self) -> list[dict]:
         return load_dataset("referentiel-des-lignes")
 
+    def get_arrets_lignes(self) -> list[dict]:
+        return load_dataset("arrets-lignes")
+
     def stop(self) -> None:
         self._updater.stop()
 

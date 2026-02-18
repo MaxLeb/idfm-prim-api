@@ -7,6 +7,7 @@ Runnable examples demonstrating prim_api usage. Each script is self-contained.
 | `get_passages.py` | Query real-time next passages at a stop | Yes (`PRIM_TOKEN`) |
 | `browse_zones_darrets.py` | Download and browse the zones-d-arrets dataset | No |
 | `browse_referentiel_lignes.py` | Download and browse the transit line registry | No |
+| `browse_arrets_lignes.py` | Download and browse stop-line associations | No |
 
 ## Running
 
@@ -21,6 +22,10 @@ uv run python samples/browse_zones_darrets.py --search "Châtelet"
 # Browse transit lines registry
 uv run python samples/browse_referentiel_lignes.py
 uv run python samples/browse_referentiel_lignes.py --search "RER"
+
+# Browse stop-line associations
+uv run python samples/browse_arrets_lignes.py
+uv run python samples/browse_arrets_lignes.py --search "Châtelet"
 
 # Query real-time data (requires API key)
 export PRIM_TOKEN="your-api-key"
