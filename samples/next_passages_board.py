@@ -87,23 +87,31 @@ def fetch_passages(api_key, monitoring_ref, line_ref=None, *, verbose=False, con
             size = len(response.content)
             console.print(f"[dim]  → HTTP {response.status_code} ({size} bytes)[/dim]")
 
-        data = response.json()
+        try:
+            data = response.json()
+        except Exception:
+            data = None
 
-        if verbose and console:
+        if verbose and console and data:
             body = json.dumps(data, indent=2, ensure_ascii=False)
             console.print(f"[dim]  response: {body}[/dim]")
 
-        return data
+        if not response.is_success and data is None:
+            raise Exception(f"HTTP {response.status_code}: {response.text}")
+
+        return response.status_code, data
 
 
 def get_siri_error(siri_json):
-    """Extract error text from a SIRI response, or None if no error."""
+    """Extract error code and text from a SIRI response, or None if no error."""
     try:
         delivery = siri_json["Siri"]["ServiceDelivery"]["StopMonitoringDelivery"][0]
         error_cond = delivery.get("ErrorCondition")
         if error_cond:
             info = error_cond.get("ErrorInformation", {})
-            return info.get("ErrorText") or info.get("ErrorDescription")
+            code = info.get("ErrorCode", "unknown")
+            text = info.get("ErrorText") or info.get("ErrorDescription") or "unknown error"
+            return code, text
     except (KeyError, IndexError, TypeError):
         pass
     return None
@@ -302,12 +310,15 @@ def main():
         if verbose:
             console.print(f"[dim]  ID conversion: {chosen_stop_id} → {stif_stop}[/dim]")
             console.print(f"[dim]  ID conversion: {chosen_line_id} → {stif_line}[/dim]")
-        siri_json = fetch_passages(api_key, stif_stop, stif_line, verbose=verbose, console=console)
+        status_code, siri_json = fetch_passages(
+            api_key, stif_stop, stif_line, verbose=verbose, console=console
+        )
 
         siri_error = get_siri_error(siri_json)
         if siri_error:
-            console.print(f"[yellow]API error: {siri_error}[/yellow]")
-            sys.exit(0)
+            code, text = siri_error
+            console.print(f"[red]API error (HTTP {status_code}): [{code}] {text}[/red]")
+            sys.exit(1)
 
         visits = parse_visits(siri_json)
         if verbose:
