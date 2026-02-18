@@ -63,16 +63,8 @@ def numbered_menu(console, title, items, label_fn):
 def fetch_passages(api_key, monitoring_ref, line_ref=None):
     """Fetch real-time passages from PRIM API.
 
-    Args:
-        api_key: PRIM API key
-        monitoring_ref: Stop monitoring reference (stop ID)
-        line_ref: Optional line reference to filter results
-
-    Returns:
-        Parsed JSON response
-
-    Raises:
-        httpx.HTTPError: If the request fails
+    Always returns parsed JSON — even on 4xx, since the PRIM API sends
+    a valid SIRI error body that callers need to inspect.
     """
     params = {"MonitoringRef": monitoring_ref}
     if line_ref:
@@ -84,23 +76,24 @@ def fetch_passages(api_key, monitoring_ref, line_ref=None):
         response = client.get(
             f"{PRIM_BASE_URL}{STOP_MONITORING_PATH}", params=params, headers=headers, timeout=30.0
         )
-
-        if response.status_code == 401:
-            raise Exception("Authentication failed. Check your PRIM_TOKEN.")
-
-        response.raise_for_status()
         return response.json()
 
 
+def get_siri_error(siri_json):
+    """Extract error text from a SIRI response, or None if no error."""
+    try:
+        delivery = siri_json["Siri"]["ServiceDelivery"]["StopMonitoringDelivery"][0]
+        error_cond = delivery.get("ErrorCondition")
+        if error_cond:
+            info = error_cond.get("ErrorInformation", {})
+            return info.get("ErrorText") or info.get("ErrorDescription")
+    except (KeyError, IndexError, TypeError):
+        pass
+    return None
+
+
 def parse_visits(siri_json):
-    """Parse SIRI JSON response to extract visit information.
-
-    Args:
-        siri_json: Parsed SIRI JSON response
-
-    Returns:
-        List of dicts with visit information (destination, expected_time, etc.)
-    """
+    """Parse SIRI JSON response to extract visit information."""
     try:
         delivery = siri_json["Siri"]["ServiceDelivery"]["StopMonitoringDelivery"][0]
         monitored_visits = delivery.get("MonitoredStopVisit", [])
@@ -265,6 +258,12 @@ def main():
         stif_stop = to_stif_stop(chosen_stop_id)
         stif_line = to_stif_line(chosen_line_id)
         siri_json = fetch_passages(api_key, stif_stop, stif_line)
+
+        siri_error = get_siri_error(siri_json)
+        if siri_error:
+            console.print(f"[yellow]API error: {siri_error}[/yellow]")
+            sys.exit(0)
+
         visits = parse_visits(siri_json)
 
         if not visits:
