@@ -320,6 +320,11 @@ def main():
             console.print(f"[red]API error (HTTP {status_code}): [{code}] {text}[/red]")
             sys.exit(1)
 
+        if status_code >= 400:
+            body = siri_json if siri_json else "(empty response)"
+            console.print(f"[red]HTTP {status_code}: {body}[/red]")
+            sys.exit(1)
+
         visits = parse_visits(siri_json)
         if verbose:
             console.print(f"[dim]  → {len(visits)} visits parsed[/dim]")
