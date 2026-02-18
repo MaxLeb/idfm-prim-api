@@ -130,8 +130,9 @@ def to_stif_stop(idfm_id):
         IDFM:monomodalStopPlace:58879  -> STIF:StopPoint:Q:58879:
     """
     if idfm_id.startswith("IDFM:"):
-        # Extract the trailing numeric part (last segment after ':')
         numeric = idfm_id.rsplit(":", 1)[-1]
+        if "monomodalStopPlace" in idfm_id:
+            return f"STIF:StopArea:SP:{numeric}:"
         return f"STIF:StopPoint:Q:{numeric}:"
     return idfm_id
 
