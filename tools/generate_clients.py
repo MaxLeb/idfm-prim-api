@@ -149,7 +149,7 @@ def generate_client(
         "-g",
         "python",  # target language
         "-o",
-        f"/local/clients/{api_name}",  # output directory (inside container)
+        f"/local/generated/clients/{api_name}",  # output directory (inside container)
         "--package-name",
         api_name,
         "--skip-validate-spec",  # tolerate minor spec issues
@@ -199,7 +199,7 @@ def main(
     # Determine repo root
     repo_root = Path(__file__).parent.parent.resolve()
     specs_dir = repo_root / "specs"
-    clients_dir = repo_root / "clients"
+    clients_dir = repo_root / "generated" / "clients"
 
     # Check if specs directory exists
     if not specs_dir.exists():

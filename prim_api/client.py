@@ -1,7 +1,7 @@
 """High-level SDK wrapper around the generated PRIM OpenAPI client.
 
 This module wires together:
-- The auto-generated ``idfm_ivtr_requete_unitaire`` client (lives in clients/)
+- The auto-generated ``idfm_ivtr_requete_unitaire`` client (lives in generated/clients/)
 - Dataset download / loading helpers from ``prim_api.datasets``
 - A background updater that keeps datasets fresh (``prim_api.updater``)
 """
@@ -16,10 +16,10 @@ from prim_api.updater import DatasetUpdater
 # sys.path hack — make the generated client importable
 # ---------------------------------------------------------------------------
 # The generated client package (idfm_ivtr_requete_unitaire) is not installed
-# via pip; it lives under clients/.  We add its directory to sys.path at
+# via pip; it lives under generated/clients/.  We add its directory to sys.path at
 # runtime so that Python can find the package.  The guard prevents duplicate
 # entries if this module is reloaded.
-_CLIENTS_DIR = Path(__file__).parent.parent / "clients" / "idfm_ivtr_requete_unitaire"
+_CLIENTS_DIR = Path(__file__).parent.parent / "generated" / "clients" / "idfm_ivtr_requete_unitaire"
 if str(_CLIENTS_DIR) not in sys.path:
     sys.path.insert(0, str(_CLIENTS_DIR))
 

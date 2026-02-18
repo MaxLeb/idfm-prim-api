@@ -34,7 +34,7 @@ sync-all = "tools.sync_all:app"
 #   work without installing the packages.
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-pythonpath = [".", "clients/idfm_ivtr_requete_unitaire"]
+pythonpath = [".", "generated/clients/idfm_ivtr_requete_unitaire"]
 
 # -- Setuptools packaging ------------------------------------------------------
 # Only include the prim_api package (not tools/, tests/, samples/) when building
@@ -49,7 +49,7 @@ include = ["prim_api*"]
 [tool.ruff]
 line-length = 100
 target-version = "py312"
-exclude = ["clients/"]
+exclude = ["generated/clients/"]
 
 # select: which rule families to enable.
 #   E = pycodestyle errors, F = Pyflakes, I = isort (import sorting),

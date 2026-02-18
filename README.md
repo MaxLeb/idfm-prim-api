@@ -17,7 +17,7 @@ This repository maintains up-to-date interface contracts from PRIM APIs and data
 The sync pipeline runs in 4 steps:
 
 1. **sync_specs** — downloads OpenAPI/Swagger specs from `manifests/apis.yml`, resolves PRIM page URLs, caches with ETag/Last-Modified/sha256
-2. **generate_clients** — regenerates Python clients in `clients/` when specs change
+2. **generate_clients** — regenerates Python clients in `generated/clients/` when specs change
 3. **sync_datasets** — downloads dataset exports from Opendatasoft portal as defined in `manifests/datasets.yml`
 4. **validate_datasets** — retrieves JSON Schema for each dataset, validates records, generates reports
 
@@ -30,7 +30,7 @@ prim_api/           # Python SDK (IdFMPrimAPI, dataset sync, background updater)
 samples/            # Runnable usage examples (update when adding endpoints/data)
 manifests/          # YAML manifests (apis.yml, datasets.yml, urls_of_interest.yml)
 specs/              # Downloaded OpenAPI/Swagger specs (committed)
-clients/            # Generated Python clients (committed)
+generated/clients/  # Generated Python clients (committed)
 data/schema/        # JSON Schemas for datasets (committed)
 data/raw/           # Dataset exports in JSONL (gitignored)
 data/reports/       # Validation reports (gitignored)
@@ -47,7 +47,7 @@ tools/              # CLI scripts
 - CI workflows (`.github/workflows/`)
 - Project config (`pyproject.toml`, `.gitignore`)
 - OpenAPI specs + metadata (`specs/`) — updated by nightly sync
-- Generated Python clients (`clients/`) — regenerated when specs change
+- Generated Python clients (`generated/clients/`) — regenerated when specs change
 - Dataset schemas (`data/schema/`) — kept in sync with portal metadata
 
 **Gitignored (downloaded on demand by devs):**

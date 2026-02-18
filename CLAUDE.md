@@ -36,7 +36,7 @@ prim_api/           # Python SDK: IdFMPrimAPI wrapper, dataset sync/access, back
 samples/            # Runnable examples — update when adding new endpoints or datasets
 manifests/          # YAML manifests driving all sync (apis.yml, datasets.yml, urls_of_interest.yml)
 specs/              # Downloaded OpenAPI/Swagger JSON + .meta.json (committed)
-clients/            # Generated Python clients (committed, excluded from ruff)
+generated/clients/  # Generated Python clients (committed, excluded from ruff)
 data/schema/        # JSON Schemas for datasets (committed)
 data/raw/           # Downloaded dataset exports, .jsonl + .meta.json (gitignored, dev-only)
 data/reports/       # Validation reports (gitignored)
@@ -45,7 +45,7 @@ tools/              # CLI scripts: sync_specs, generate_clients, sync_datasets, 
 
 ## Architecture
 
-- **Manifests → Scripts → Artifacts**: manifests define *what* to sync; `tools/*.py` scripts fetch, generate, and validate; outputs land in `specs/`, `clients/`, `data/`.
+- **Manifests → Scripts → Artifacts**: manifests define *what* to sync; `tools/*.py` scripts fetch, generate, and validate; outputs land in `specs/`, `generated/clients/`, `data/`.
 - **Conditional sync**: all scripts use ETag / Last-Modified / sha256 to skip unchanged resources.
 - **PRIM page resolver**: for `type: prim_page` entries, HTML is fetched and regex patterns extract the spec URL. Falls back to `spec_url_override`.
 - **Dataset exports**: uses Opendatasoft Explore API v2.1 `/exports/` endpoint (not `/records/`) to get full datasets without pagination limits.

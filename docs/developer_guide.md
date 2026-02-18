@@ -24,7 +24,7 @@ Scripts in `tools/` fetch, process, and validate:
 
 Artifacts land in committed/tracked directories:
 - `specs/` — Downloaded OpenAPI/Swagger JSON + .meta.json
-- `clients/` — Generated Python clients (committed, excluded from linting)
+- `generated/clients/` — Generated Python clients (committed, excluded from linting)
 - `data/schema/` — JSON Schemas for validation (committed)
 - `data/raw/` — Downloaded datasets in JSONL format (gitignored, dev-only)
 - `data/reports/` — Validation reports (gitignored)
@@ -63,14 +63,14 @@ This makes `uv run sync-specs` or `sync-specs` (after install) executable.
 
 **`[tool.pytest.ini_options]`** — pytest configuration:
 - **testpaths** = `["tests"]` — where pytest looks for tests
-- **pythonpath** = `[".", "clients/idfm_ivtr_requete_unitaire"]` — adds dirs to `sys.path` so imports resolve (used for generated clients)
+- **pythonpath** = `[".", "generated/clients/idfm_ivtr_requete_unitaire"]` — adds dirs to `sys.path` so imports resolve (used for generated clients)
 
 **`[tool.setuptools.packages.find]`** — Finds Python packages to install:
-- **include** = `["prim_api*"]` — includes prim_api/ but not clients/ (generated, not a package)
+- **include** = `["prim_api*"]` — includes prim_api/ but not generated/clients/ (generated, not a package)
 
 **`[tool.ruff]`** — Code style:
 - **line-length** = 100
-- **exclude** = `["clients/"]` — skip linting generated code
+- **exclude** = `["generated/clients/"]` — skip linting generated code
 
 **`[tool.ruff.lint]`** — Lint rules (error codes to enforce):
 - `E` — PEP8 errors
@@ -196,14 +196,14 @@ Without `__init__.py`, Python treats it as a namespace package (less common). Th
 
 ### Why generated clients need sys.path.insert
 
-Generated clients are in `clients/` but not installed as packages. To import them, we add their directory to Python's search path:
+Generated clients are in `generated/clients/` but not installed as packages. To import them, we add their directory to Python's search path:
 
 ```python
 import sys
 from pathlib import Path
 
 repo_root = Path(__file__).parent.parent
-client_path = repo_root / "clients" / "idfm_ivtr_requete_unitaire"
+client_path = repo_root / "generated" / "clients" / "idfm_ivtr_requete_unitaire"
 
 # Add to Python's import search list
 sys.path.insert(0, str(client_path))
