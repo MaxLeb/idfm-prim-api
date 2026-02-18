@@ -20,20 +20,20 @@ class TestMapOdsTypeToJsonSchema:
     @pytest.mark.parametrize(
         ("ods_type", "expected"),
         [
-            ("text", {"type": "string"}),
-            ("int", {"type": "integer"}),
-            ("double", {"type": "number"}),
-            ("date", {"type": "string", "format": "date"}),
-            ("datetime", {"type": "string", "format": "date-time"}),
-            ("geo_point_2d", {"type": "object"}),
-            ("geo_shape", {"type": "object"}),
+            ("text", {"type": ["string", "null"]}),
+            ("int", {"type": ["integer", "null"]}),
+            ("double", {"type": ["number", "null"]}),
+            ("date", {"type": ["string", "null"], "format": "date"}),
+            ("datetime", {"type": ["string", "null"], "format": "date-time"}),
+            ("geo_point_2d", {"type": ["object", "null"]}),
+            ("geo_shape", {"type": ["object", "null"]}),
         ],
     )
     def test_known_types(self, ods_type, expected):
         assert map_ods_type_to_json_schema(ods_type) == expected
 
     def test_unknown_type_defaults_to_string(self):
-        assert map_ods_type_to_json_schema("unknown_type") == {"type": "string"}
+        assert map_ods_type_to_json_schema("unknown_type") == {"type": ["string", "null"]}
 
 
 # ---------------------------------------------------------------------------
@@ -73,6 +73,32 @@ class TestValidateDataset:
         assert report["valid_records"] == 2
         assert report["invalid_records"] == 0
         assert report["errors"] == []
+
+    def test_null_values_pass_validation(self, tmp_path, monkeypatch):
+        monkeypatch.setattr(mod, "DATA_RAW_DIR", tmp_path)
+        monkeypatch.setattr(mod, "REPO_ROOT", tmp_path)
+
+        dataset_id = "nullable_ds"
+        data_file = tmp_path / f"{dataset_id}.jsonl"
+        data_file.write_text(
+            json.dumps({"name": None, "age": None})
+            + "\n"
+            + json.dumps({"name": "Alice", "age": 30})
+            + "\n"
+        )
+
+        schema = self._make_schema(
+            {
+                "name": {"type": ["string", "null"]},
+                "age": {"type": ["integer", "null"]},
+            }
+        )
+
+        report = validate_dataset(dataset_id, schema)
+
+        assert report["total_records"] == 2
+        assert report["valid_records"] == 2
+        assert report["invalid_records"] == 0
 
     def test_invalid_records(self, tmp_path, monkeypatch):
         monkeypatch.setattr(mod, "DATA_RAW_DIR", tmp_path)

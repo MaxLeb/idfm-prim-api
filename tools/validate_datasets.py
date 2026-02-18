@@ -30,15 +30,15 @@ DATA_REPORTS_DIR = REPO_ROOT / "data" / "reports"
 def map_ods_type_to_json_schema(ods_type: str) -> dict[str, Any]:
     """Map Opendatasoft field type to JSON Schema property definition."""
     type_mapping = {
-        "text": {"type": "string"},
-        "int": {"type": "integer"},
-        "double": {"type": "number"},
-        "date": {"type": "string", "format": "date"},
-        "datetime": {"type": "string", "format": "date-time"},
-        "geo_point_2d": {"type": "object"},
-        "geo_shape": {"type": "object"},
+        "text": {"type": ["string", "null"]},
+        "int": {"type": ["integer", "null"]},
+        "double": {"type": ["number", "null"]},
+        "date": {"type": ["string", "null"], "format": "date"},
+        "datetime": {"type": ["string", "null"], "format": "date-time"},
+        "geo_point_2d": {"type": ["object", "null"]},
+        "geo_shape": {"type": ["object", "null"]},
     }
-    return type_mapping.get(ods_type, {"type": "string"})
+    return type_mapping.get(ods_type, {"type": ["string", "null"]})
 
 
 def fetch_schema_from_override(schema_url: str, client: httpx.Client) -> dict[str, Any]:
