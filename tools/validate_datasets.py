@@ -37,6 +37,7 @@ def map_ods_type_to_json_schema(ods_type: str) -> dict[str, Any]:
         "datetime": {"type": ["string", "null"], "format": "date-time"},
         "geo_point_2d": {"type": ["object", "null"]},
         "geo_shape": {"type": ["object", "null"]},
+        "file": {"type": ["object", "null"]},
     }
     return type_mapping.get(ods_type, {"type": ["string", "null"]})
 

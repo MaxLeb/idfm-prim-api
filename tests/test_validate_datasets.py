@@ -27,6 +27,7 @@ class TestMapOdsTypeToJsonSchema:
             ("datetime", {"type": ["string", "null"], "format": "date-time"}),
             ("geo_point_2d", {"type": ["object", "null"]}),
             ("geo_shape", {"type": ["object", "null"]}),
+            ("file", {"type": ["object", "null"]}),
         ],
     )
     def test_known_types(self, ods_type, expected):
