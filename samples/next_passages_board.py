@@ -132,10 +132,13 @@ def parse_visits(siri_json):
 def to_stif_stop(idfm_id):
     """Convert IDFM stop ID to STIF format.
 
-    Example: IDFM:463257 -> STIF:StopPoint:Q:463257:
+    Examples:
+        IDFM:463257                    -> STIF:StopPoint:Q:463257:
+        IDFM:monomodalStopPlace:58879  -> STIF:StopPoint:Q:58879:
     """
     if idfm_id.startswith("IDFM:"):
-        numeric = idfm_id.split(":", 1)[1]
+        # Extract the trailing numeric part (last segment after ':')
+        numeric = idfm_id.rsplit(":", 1)[-1]
         return f"STIF:StopPoint:Q:{numeric}:"
     return idfm_id
 
@@ -146,7 +149,7 @@ def to_stif_line(idfm_id):
     Example: IDFM:C01371 -> STIF:Line::C01371:
     """
     if idfm_id.startswith("IDFM:"):
-        line_code = idfm_id.split(":", 1)[1]
+        line_code = idfm_id.rsplit(":", 1)[-1]
         return f"STIF:Line::{line_code}:"
     return idfm_id
 
@@ -256,20 +259,13 @@ def main():
         chosen_stop_id = chosen_stop_record["stop_id"]
         chosen_stop_name = chosen_stop_record.get("stop_name", "?")
 
-        # Step 4: Fetch passages from API
+        # Step 4: Fetch passages from API (always convert to STIF format)
         console.print(f"\n[cyan]Fetching real-time data for {chosen_stop_name}...[/cyan]")
 
-        # Try IDFM format first
-        siri_json = fetch_passages(api_key, chosen_stop_id, chosen_line_id)
+        stif_stop = to_stif_stop(chosen_stop_id)
+        stif_line = to_stif_line(chosen_line_id)
+        siri_json = fetch_passages(api_key, stif_stop, stif_line)
         visits = parse_visits(siri_json)
-
-        # If no results, retry with STIF format
-        if not visits:
-            console.print("[yellow]No results with IDFM format, trying STIF format...[/yellow]")
-            stif_stop = to_stif_stop(chosen_stop_id)
-            stif_line = to_stif_line(chosen_line_id)
-            siri_json = fetch_passages(api_key, stif_stop, stif_line)
-            visits = parse_visits(siri_json)
 
         if not visits:
             console.print(f"[yellow]No upcoming passages found for {chosen_stop_name}[/yellow]")
