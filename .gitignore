@@ -11,15 +11,13 @@ build/
 # uv
 uv.lock
 
-# Data artifacts (downloaded, not checked in)
+# Raw dataset exports and validation reports (large, regenerable)
 data/raw/
-data/schema/
 data/reports/
 
-# Downloaded specs and generated clients (re-generated on demand)
-specs/*.json
+# Spec/client metadata (regenerable cache)
 specs/*.meta.json
-clients/
+clients/*/.spec_hash
 
 # IDE
 .idea/

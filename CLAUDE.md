@@ -36,11 +36,11 @@ uv run python tools/sync_all.py  # full sync pipeline
 
 ```
 manifests/          # YAML manifests driving all sync (apis.yml, datasets.yml, urls_of_interest.yml)
-specs/              # Downloaded OpenAPI/Swagger JSON + .meta.json (ETag/hash)
-clients/            # Generated Python clients (one subpackage per API)
-data/raw/           # Downloaded dataset exports (.jsonl) + .meta.json
-data/schema/        # JSON Schemas for datasets
-data/reports/       # Validation reports
+specs/              # Downloaded OpenAPI/Swagger JSON (committed) + .meta.json (gitignored)
+clients/            # Generated Python clients (committed)
+data/schema/        # JSON Schemas for datasets (committed)
+data/raw/           # Downloaded dataset exports, .jsonl + .meta.json (gitignored)
+data/reports/       # Validation reports (gitignored)
 tools/              # CLI scripts: sync_specs, generate_clients, sync_datasets, validate_datasets, sync_all
 ```
 

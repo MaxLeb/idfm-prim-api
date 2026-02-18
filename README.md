@@ -27,10 +27,10 @@ Each step is conditional: resources are only re-fetched or regenerated when chan
 
 ```
 manifests/          # YAML manifests (apis.yml, datasets.yml, urls_of_interest.yml)
-specs/              # Downloaded OpenAPI/Swagger specs (gitignored)
-clients/            # Generated Python clients (gitignored)
+specs/              # Downloaded OpenAPI/Swagger specs (committed)
+clients/            # Generated Python clients (committed)
+data/schema/        # JSON Schemas for datasets (committed)
 data/raw/           # Dataset exports in JSONL (gitignored)
-data/schema/        # JSON Schemas for datasets (gitignored)
 data/reports/       # Validation reports (gitignored)
 tools/              # CLI scripts
 .github/workflows/  # CI and nightly sync workflows
@@ -44,11 +44,14 @@ tools/              # CLI scripts
 - Tests (`tests/`)
 - CI workflows (`.github/workflows/`)
 - Project config (`pyproject.toml`, `.gitignore`)
+- OpenAPI specs (`specs/*.json`) — updated by nightly sync
+- Generated Python clients (`clients/`) — regenerated when specs change
+- Dataset schemas (`data/schema/`) — kept in sync with portal metadata
 
-**Gitignored (generated artifacts):**
-- `specs/*.json` and `specs/*.meta.json`
-- `clients/`
-- `data/raw/`, `data/schema/`, `data/reports/`
+**Gitignored (large/volatile artifacts):**
+- `data/raw/` — dataset exports (JSONL, can be large)
+- `data/reports/` — validation reports
+- `specs/*.meta.json`, `clients/*/.spec_hash` — internal cache files
 
 ## Setup
 
