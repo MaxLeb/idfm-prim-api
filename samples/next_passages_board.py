@@ -268,18 +268,19 @@ def main():
                 f" {len(unique_lines)} unique lines)[/dim]"
             )
 
-        # Step 3: Pick a stop
+        # Step 3: Pick a stop (deduplicate by name, keep all stop_ids)
         line_records = [r for r in records if r.get("id") == chosen_line_id]
 
-        # Deduplicate stops by stop_id
-        seen_stop_ids = set()
-        unique_stops = []
+        # Group stops by name — a station may have multiple stop_ids
+        # (one per platform/direction)
+        stops_by_name: dict[str, list[dict]] = {}
         for r in line_records:
-            stop_id = r.get("stop_id")
-            if stop_id and stop_id not in seen_stop_ids:
-                seen_stop_ids.add(stop_id)
-                unique_stops.append(r)
+            name = r.get("stop_name", "")
+            if name:
+                stops_by_name.setdefault(name, []).append(r)
 
+        # Build a deduplicated list (one entry per station name)
+        unique_stops = [entries[0] for entries in stops_by_name.values()]
         unique_stops.sort(key=lambda r: r.get("stop_name", ""))
 
         if not unique_stops:
@@ -293,48 +294,60 @@ def main():
             lambda r: f"{r.get('stop_name', '?')} ({r.get('nom_commune', '?')})",
         )
 
-        chosen_stop_id = chosen_stop_record["stop_id"]
         chosen_stop_name = chosen_stop_record.get("stop_name", "?")
+        # All stop_ids for that station (both platforms)
+        chosen_stop_ids = [r["stop_id"] for r in stops_by_name[chosen_stop_name]]
         if verbose:
             console.print(
                 f"[dim]  → stop={chosen_stop_name}"
-                f" stop_id={chosen_stop_id}"
+                f" stop_ids={chosen_stop_ids}"
                 f" ({len(unique_stops)} unique stops)[/dim]"
             )
 
-        # Step 4: Fetch passages from API (always convert to STIF format)
+        # Step 4: Fetch passages from API (query each stop_id, merge)
         console.print(f"\n[cyan]Fetching real-time data for {chosen_stop_name}...[/cyan]")
 
-        stif_stop = to_stif_stop(chosen_stop_id)
         stif_line = to_stif_line(chosen_line_id)
         if verbose:
-            console.print(f"[dim]  ID conversion: {chosen_stop_id} → {stif_stop}[/dim]")
             console.print(f"[dim]  ID conversion: {chosen_line_id} → {stif_line}[/dim]")
-        status_code, siri_json = fetch_passages(
-            api_key, stif_stop, stif_line, verbose=verbose, console=console
-        )
 
-        siri_error = get_siri_error(siri_json)
-        if siri_error:
-            code, text = siri_error
-            console.print(f"[red]API error (HTTP {status_code}): [{code}] {text}[/red]")
-            sys.exit(1)
+        all_visits = []
+        for stop_id in chosen_stop_ids:
+            stif_stop = to_stif_stop(stop_id)
+            if verbose:
+                console.print(f"[dim]  ID conversion: {stop_id} → {stif_stop}[/dim]")
+            status_code, siri_json = fetch_passages(
+                api_key,
+                stif_stop,
+                stif_line,
+                verbose=verbose,
+                console=console,
+            )
 
-        if status_code >= 400:
-            body = siri_json if siri_json else "(empty response)"
-            console.print(f"[red]HTTP {status_code}: {body}[/red]")
-            sys.exit(1)
+            siri_error = get_siri_error(siri_json)
+            if siri_error:
+                code, text = siri_error
+                if verbose:
+                    console.print(f"[dim]  API error for {stif_stop}: [{code}] {text}[/dim]")
+                continue
 
-        visits = parse_visits(siri_json)
+            if status_code >= 400:
+                if verbose:
+                    body = siri_json or "(empty)"
+                    console.print(f"[dim]  HTTP {status_code} for {stif_stop}: {body}[/dim]")
+                continue
+
+            all_visits.extend(parse_visits(siri_json))
+
         if verbose:
-            console.print(f"[dim]  → {len(visits)} visits parsed[/dim]")
+            console.print(f"[dim]  → {len(all_visits)} visits total[/dim]")
 
-        if not visits:
+        if not all_visits:
             console.print(f"[yellow]No upcoming passages found for {chosen_stop_name}[/yellow]")
-            sys.exit(0)
+            sys.exit(1)
 
         # Step 5: Pick a direction
-        destinations = sorted(set(v["destination"] for v in visits))
+        destinations = sorted(set(v["destination"] for v in all_visits))
 
         if not destinations:
             console.print("[yellow]No destinations found in passages[/yellow]")
@@ -345,7 +358,7 @@ def main():
         )
 
         # Step 6: Display departure board
-        filtered_visits = [v for v in visits if v["destination"] == chosen_destination]
+        filtered_visits = [v for v in all_visits if v["destination"] == chosen_destination]
 
         # Sort by expected departure time
         for v in filtered_visits:
