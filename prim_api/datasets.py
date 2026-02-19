@@ -15,7 +15,6 @@ Python SDK (``prim_api.client``).  It supports:
 import hashlib
 import json
 import logging
-from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -79,7 +78,6 @@ def _save_metadata(
         "etag": etag,
         "last_modified": last_modified,
         "sha256": sha256,
-        "timestamp": datetime.now(UTC).isoformat(),
     }
     with meta_path.open("w") as f:
         json.dump(metadata, f, indent=2)

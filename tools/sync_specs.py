@@ -15,7 +15,6 @@ import json
 import os
 import re
 import sys
-from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -198,7 +197,6 @@ def fetch_spec(
         # Capture response headers for next conditional GET
         metadata = {
             "url": str(response.url),
-            "timestamp": datetime.now(UTC).isoformat(),
         }
 
         if "etag" in response.headers:
@@ -293,9 +291,6 @@ def sync_api(
 
     if existing_meta.get("sha256") == sha256:
         console.print("  [green]✓[/green] Content unchanged (SHA256 match)")
-        # Update metadata timestamp but keep same content
-        response_meta["sha256"] = sha256
-        save_metadata(meta_path, response_meta)
         return True
 
     # Save spec and metadata
