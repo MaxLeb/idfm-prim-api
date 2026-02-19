@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/MaxLeb/idfm-prim-api/actions/workflows/ci.yml/badge.svg)](https://github.com/MaxLeb/idfm-prim-api/actions/workflows/ci.yml)
 [![Nightly Sync](https://github.com/MaxLeb/idfm-prim-api/actions/workflows/nightly-sync.yml/badge.svg)](https://github.com/MaxLeb/idfm-prim-api/actions/workflows/nightly-sync.yml)
-[![Coverage](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/MaxLeb/PLACEHOLDER_GIST_ID/raw/coverage-badge.json)](https://github.com/MaxLeb/idfm-prim-api/actions/workflows/ci.yml)
+[![Coverage](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/MaxLeb/d72c7687b024402a96d08a3f7e684284/raw/coverage-badge.json)](https://github.com/MaxLeb/idfm-prim-api/actions/workflows/ci.yml)
 [![Python 3.12+](https://img.shields.io/badge/python-3.12%2B-blue)](https://www.python.org/)
 [![Docs](https://img.shields.io/badge/docs-GitHub%20Pages-blue)](https://MaxLeb.github.io/idfm-prim-api/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
