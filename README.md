@@ -291,4 +291,7 @@ API reference is auto-generated from docstrings and published to GitHub Pages:
 
 ## License
 
-This project is licensed under the [MIT License](LICENSE).
+This project's own code is licensed under the [MIT License](LICENSE).
+
+- **IDFM data** — datasets and API responses from Île-de-France Mobilités are published under the [Open Database License (ODbL 1.0)](https://spdx.org/licenses/ODbL-1.0.html).
+- **Generated clients** — Python clients in `generated/clients/` are produced by [OpenAPI Generator](https://openapi-generator.tech/), licensed under [Apache 2.0](https://www.apache.org/licenses/LICENSE-2.0).
