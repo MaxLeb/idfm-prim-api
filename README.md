@@ -1,5 +1,13 @@
 # prim-api
 
+[![CI](https://github.com/MaxLeb/idfm-prim-api/actions/workflows/ci.yml/badge.svg)](https://github.com/MaxLeb/idfm-prim-api/actions/workflows/ci.yml)
+[![Nightly Sync](https://github.com/MaxLeb/idfm-prim-api/actions/workflows/nightly-sync.yml/badge.svg)](https://github.com/MaxLeb/idfm-prim-api/actions/workflows/nightly-sync.yml)
+[![Coverage](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/MaxLeb/PLACEHOLDER_GIST_ID/raw/coverage-badge.json)](https://github.com/MaxLeb/idfm-prim-api/actions/workflows/ci.yml)
+[![Python 3.12+](https://img.shields.io/badge/python-3.12%2B-blue)](https://www.python.org/)
+[![Docs](https://img.shields.io/badge/docs-GitHub%20Pages-blue)](https://MaxLeb.github.io/idfm-prim-api/)
+
+> **Note** — This project is mostly vibecoded with AI assistance.
+
 Auto-sync PRIM (Île-de-France Mobilités) OpenAPI/Swagger specs, generate Python clients, and sync/validate Opendatasoft datasets.
 
 This repository maintains up-to-date interface contracts from PRIM APIs and dataset exports from the IDFM Opendatasoft portal. Everything is manifest-driven and idempotent.
@@ -35,6 +43,7 @@ data/schema/        # JSON Schemas for datasets (committed)
 data/raw/           # Dataset exports in JSONL (gitignored)
 data/reports/       # Validation reports (gitignored)
 tools/              # CLI scripts
+docs/site/          # Generated API docs (gitignored)
 .github/workflows/  # CI and nightly sync workflows
 ```
 
@@ -78,10 +87,10 @@ from prim_api import IdFMPrimAPI
 api = IdFMPrimAPI(api_key="your-prim-key")
 
 # Query real-time next passages at a stop
-passages = api.get_passages("STIF:StopPoint:Q:473921:")
+passages = api.get_passages("IDFM:473921")
 
 # Filter by line
-passages = api.get_passages("STIF:StopPoint:Q:473921:", line_id="STIF:Line::C01742:")
+passages = api.get_passages("IDFM:473921", line_id="IDFM:C01742")
 
 # Access downloaded datasets
 zones = api.get_zones_darrets()
@@ -112,6 +121,26 @@ IdFMPrimAPI(
 | `ensure_datasets()` | Download datasets if missing or stale |
 | `refresh_datasets()` | Force re-check all datasets |
 | `stop()` | Stop the background updater thread |
+
+### Reference types
+
+The `prim_api.refs` module provides helpers to convert between IDFM and STIF identifier formats:
+
+| Helper | Description |
+|---|---|
+| `parse_stop_ref(idfm_id)` | Auto-detect `StopPointRef` or `StopAreaRef` from an IDFM ID |
+| `parse_line_ref(idfm_id)` | Parse an IDFM line ID into a `LineRef` |
+| `StopPointRef` / `StopAreaRef` / `LineRef` | Dataclasses with `.to_stif()` and `.from_idfm()` |
+
+```python
+from prim_api.refs import parse_stop_ref, parse_line_ref
+
+stop = parse_stop_ref("IDFM:473921")
+print(stop.to_stif())  # "STIF:StopPoint:Q:473921:"
+
+line = parse_line_ref("IDFM:C01742")
+print(line.to_stif())  # "STIF:Line::C01742:"
+```
 
 ### Using datasets without an API key
 
@@ -200,6 +229,14 @@ Runs nightly at 01:00 UTC (≈ 02:00 Europe/Paris):
 
 Dataset sync is **not** part of the nightly — devs download data locally on demand via `uv run sync-datasets`.
 
+### `docs.yml` (API docs)
+
+Builds API documentation with pdoc and deploys to GitHub Pages on push to `main`.
+
+### Coverage
+
+CI runs `pytest --cov` and pushes a dynamic badge to a GitHub gist. See setup instructions below.
+
 ## Manifest format
 
 ### `manifests/apis.yml`
@@ -244,3 +281,9 @@ urls:
   dataset_zones_d_arrets: "https://data.iledefrance-mobilites.fr/explore/dataset/zones-d-arrets/"
   explore_api_docs: "https://help.opendatasoft.com/apis/ods-explore-v2/"
 ```
+
+## Documentation
+
+API reference is auto-generated from docstrings and published to GitHub Pages:
+
+**[https://MaxLeb.github.io/idfm-prim-api/](https://MaxLeb.github.io/idfm-prim-api/)**

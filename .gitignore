@@ -22,3 +22,6 @@ data/reports/
 
 # OS
 .DS_Store
+
+# Generated API docs (built in CI)
+docs/site/

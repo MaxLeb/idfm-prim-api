@@ -25,8 +25,25 @@ jobs:
       - name: Format check
         run: uv run ruff format --check .
 
-      - name: Run tests
-        run: uv run pytest
+      - name: Run tests with coverage
+        id: coverage
+        run: |
+          uv run pytest --cov=prim_api --cov-report=term --cov-report=json
+          PERCENT=$(python3 -c "import json; print(round(json.load(open('coverage.json'))['totals']['percent_covered']))")
+          echo "percent=$PERCENT" >> "$GITHUB_OUTPUT"
+
+      - name: Update coverage badge
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        uses: schneegans/dynamic-badges-action@v1.7.0
+        with:
+          auth: ${{ secrets.GIST_TOKEN }}
+          gistID: PLACEHOLDER_GIST_ID
+          filename: coverage-badge.json
+          label: coverage
+          message: "${{ steps.coverage.outputs.percent }}%"
+          valColorRange: ${{ steps.coverage.outputs.percent }}
+          minColorRange: 50
+          maxColorRange: 100
 
       - name: Dry-run sync pipeline
         run: uv run python -m tools.sync_all --dry-run

@@ -67,4 +67,6 @@ dev = [
     "pytest-asyncio>=0.23",  # Async test support (not used yet, but available)
     "respx>=0.21",           # Mock library for httpx requests
     "ruff>=0.6",             # Linter & formatter (single tool replaces black + isort + flake8)
+    "pytest-cov>=5.0",       # Coverage reporting
+    "pdoc>=14.0",            # API docs generation
 ]

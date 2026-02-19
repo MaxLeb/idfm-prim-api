@@ -12,7 +12,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **HTTP:** httpx
 - **CLI:** typer
 - **Validation:** jsonschema
-- **Testing:** pytest, respx
+- **Testing:** pytest, respx, pytest-cov
+- **Docs:** pdoc (auto-generated API reference)
 - **Lint/Format:** ruff
 - **Client generation:** OpenAPI Generator (Docker image `openapitools/openapi-generator-cli`, pinned version)
 - **Generated client deps:** pydantic, python-dateutil, urllib3
@@ -27,6 +28,8 @@ uv run pytest -k test_name       # run a single test by name
 uv run ruff check .              # lint
 uv run ruff format .             # format
 uv run python tools/sync_all.py  # full sync pipeline
+uv run pytest --cov=prim_api     # run tests with coverage
+uv run pdoc prim_api -o docs/site # generate API docs locally
 ```
 
 ## Repo Layout (target)
@@ -40,6 +43,7 @@ generated/clients/  # Generated Python clients (committed, excluded from ruff)
 data/schema/        # JSON Schemas for datasets (committed)
 data/raw/           # Downloaded dataset exports, .jsonl + .meta.json (gitignored, dev-only)
 data/reports/       # Validation reports (gitignored)
+docs/site/          # Generated API docs (gitignored, built in CI)
 tools/              # CLI scripts: sync_specs, generate_clients, sync_datasets, validate_datasets, sync_all
 ```
 
@@ -51,6 +55,7 @@ tools/              # CLI scripts: sync_specs, generate_clients, sync_datasets, 
 - **Dataset exports**: uses Opendatasoft Explore API v2.1 `/exports/` endpoint (not `/records/`) to get full datasets without pagination limits.
 - **Pipeline order** (`sync_all.py`): sync_specs → generate_clients → sync_datasets → validate_datasets.
 - **Python SDK** (`prim_api/`): `IdFMPrimAPI` wraps the generated client with a clean interface, auto-downloads datasets on first use, and refreshes them in a background thread. Core dataset logic lives in `prim_api/datasets.py` (shared with CLI tools).
+- **Refs module** (`prim_api/refs.py`): IDFM ↔ STIF identifier conversion helpers (`StopPointRef`, `StopAreaRef`, `LineRef`, `parse_stop_ref`, `parse_line_ref`).
 
 ## Environment Variables
 
@@ -58,5 +63,6 @@ tools/              # CLI scripts: sync_specs, generate_clients, sync_datasets, 
 
 ## CI (GitHub Actions)
 
-- **ci.yml** — on PR/push: install, test, lint, dry-run sync.
+- **ci.yml** — on PR/push: install, test (with coverage), lint, dry-run sync. Pushes coverage badge to gist on main.
 - **nightly-sync.yml** — nightly at 02:00 Europe/Paris: sync specs + regenerate clients, auto-open PR if changes detected. Dataset sync is not part of nightly (devs download on demand).
+- **docs.yml** — on push to main: builds API docs with pdoc and deploys to GitHub Pages.
