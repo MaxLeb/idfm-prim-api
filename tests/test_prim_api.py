@@ -195,10 +195,10 @@ class TestIdFMPrimAPI:
             patch.object(client_mod, "ensure_all_datasets"),
         ):
             sdk = client_mod.IdFMPrimAPI("my-key", auto_sync=False)
-            sdk.get_passages("stop:123", line_id="line:A")
+            sdk.get_passages("IDFM:463257", line_id="IDFM:C01371")
 
             mock_api.return_value.get_passages.assert_called_once_with(
-                monitoring_ref="stop:123", line_ref="line:A"
+                monitoring_ref="STIF:StopPoint:Q:463257:", line_ref="STIF:Line::C01371:"
             )
             sdk.stop()
 

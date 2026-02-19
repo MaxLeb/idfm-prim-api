@@ -31,6 +31,7 @@ from rich.prompt import IntPrompt
 from rich.table import Table
 
 from prim_api.datasets import ensure_all_datasets, load_dataset
+from prim_api.refs import parse_line_ref, parse_stop_ref
 
 PRIM_BASE_URL = "https://prim.iledefrance-mobilites.fr/marketplace"
 STOP_MONITORING_PATH = "/stop-monitoring"
@@ -145,32 +146,6 @@ def parse_visits(siri_json):
         return visits
     except (KeyError, IndexError, TypeError):
         return []
-
-
-def to_stif_stop(idfm_id):
-    """Convert IDFM stop ID to STIF format.
-
-    Examples:
-        IDFM:463257                    -> STIF:StopPoint:Q:463257:
-        IDFM:monomodalStopPlace:58879  -> STIF:StopPoint:Q:58879:
-    """
-    if idfm_id.startswith("IDFM:"):
-        numeric = idfm_id.rsplit(":", 1)[-1]
-        if "monomodalStopPlace" in idfm_id:
-            return f"STIF:StopArea:SP:{numeric}:"
-        return f"STIF:StopPoint:Q:{numeric}:"
-    return idfm_id
-
-
-def to_stif_line(idfm_id):
-    """Convert IDFM line ID to STIF format.
-
-    Example: IDFM:C01371 -> STIF:Line::C01371:
-    """
-    if idfm_id.startswith("IDFM:"):
-        line_code = idfm_id.rsplit(":", 1)[-1]
-        return f"STIF:Line::{line_code}:"
-    return idfm_id
 
 
 def format_delta(departure_dt):
@@ -307,13 +282,13 @@ def main():
         # Step 4: Fetch passages from API (query each stop_id, merge)
         console.print(f"\n[cyan]Fetching real-time data for {chosen_stop_name}...[/cyan]")
 
-        stif_line = to_stif_line(chosen_line_id)
+        stif_line = parse_line_ref(chosen_line_id).to_stif()
         if verbose:
             console.print(f"[dim]  ID conversion: {chosen_line_id} → {stif_line}[/dim]")
 
         all_visits = []
         for stop_id in chosen_stop_ids:
-            stif_stop = to_stif_stop(stop_id)
+            stif_stop = parse_stop_ref(stop_id).to_stif()
             if verbose:
                 console.print(f"[dim]  ID conversion: {stop_id} → {stif_stop}[/dim]")
             status_code, siri_json = fetch_passages(

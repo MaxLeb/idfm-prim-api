@@ -9,11 +9,23 @@ Usage::
     from prim_api import IdFMPrimAPI
 
     api = IdFMPrimAPI("your-api-key")
-    passages = api.get_passages("STIF:StopPoint:Q:473921:")
+    passages = api.get_passages("IDFM:473921")
 """
 
 from prim_api.client import IdFMPrimAPI
+from prim_api.refs import (
+    LineRef,
+    StopAreaRef,
+    StopPointRef,
+    parse_line_ref,
+    parse_stop_ref,
+)
 
-# __all__ controls what `from prim_api import *` exports.
-# Only the public SDK class is exposed; internal helpers stay private.
-__all__ = ["IdFMPrimAPI"]
+__all__ = [
+    "IdFMPrimAPI",
+    "LineRef",
+    "StopAreaRef",
+    "StopPointRef",
+    "parse_line_ref",
+    "parse_stop_ref",
+]

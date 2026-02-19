@@ -10,6 +10,7 @@ import sys
 from pathlib import Path
 
 from prim_api.datasets import ensure_all_datasets, load_dataset
+from prim_api.refs import parse_line_ref, parse_stop_ref
 from prim_api.updater import DatasetUpdater
 
 # ---------------------------------------------------------------------------
@@ -58,13 +59,16 @@ class IdFMPrimAPI:
         """Query real-time next passages at a stop.
 
         Args:
-            stop_id: STIF stop point or stop area identifier.
-            line_id: Optional line filter.
+            stop_id: Stop identifier — accepts IDFM format (``IDFM:463257``,
+                ``IDFM:monomodalStopPlace:58879``) or STIF format.
+            line_id: Optional line filter (IDFM or STIF format).
 
         Returns:
             Raw response object from the generated client.
         """
-        return self._api.get_passages(monitoring_ref=stop_id, line_ref=line_id)
+        monitoring_ref = parse_stop_ref(stop_id).to_stif()
+        stif_line = parse_line_ref(line_id).to_stif() if line_id else None
+        return self._api.get_passages(monitoring_ref=monitoring_ref, line_ref=stif_line)
 
     def ensure_datasets(self) -> None:
         """Download any missing or outdated datasets (blocking)."""
