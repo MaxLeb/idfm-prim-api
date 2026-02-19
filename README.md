@@ -5,8 +5,9 @@
 [![Coverage](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/MaxLeb/PLACEHOLDER_GIST_ID/raw/coverage-badge.json)](https://github.com/MaxLeb/idfm-prim-api/actions/workflows/ci.yml)
 [![Python 3.12+](https://img.shields.io/badge/python-3.12%2B-blue)](https://www.python.org/)
 [![Docs](https://img.shields.io/badge/docs-GitHub%20Pages-blue)](https://MaxLeb.github.io/idfm-prim-api/)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
-> **Note** — This project is mostly vibecoded with AI assistance.
+> **Work in progress** — This project is an experiment in "vibe coding" with AI assistance. It comes with no guarantee of correctness, completeness, or stability. Use at your own risk.
 
 Auto-sync PRIM (Île-de-France Mobilités) OpenAPI/Swagger specs, generate Python clients, and sync/validate Opendatasoft datasets.
 
@@ -287,3 +288,7 @@ urls:
 API reference is auto-generated from docstrings and published to GitHub Pages:
 
 **[https://MaxLeb.github.io/idfm-prim-api/](https://MaxLeb.github.io/idfm-prim-api/)**
+
+## License
+
+This project is licensed under the [MIT License](LICENSE).
