@@ -35,6 +35,7 @@ uv run python samples/get_passages.py --stop "STIF:StopArea:SP:474151:"
 
 # Interactive departure board (requires API key)
 uv run python samples/next_passages_board.py
+uv run python samples/next_passages_board.py --verbose  # show API queries, IDs, responses
 ```
 
 ## Adding samples
