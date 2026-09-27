@@ -47,3 +47,13 @@ jobs:
 
       - name: Dry-run sync pipeline
         run: uv run python -m tools.sync_all --dry-run
+
+      # The exporter is what consumers pin (uvx from a tag): check that it works
+      # from the built wheel, outside the checkout, with its schema packaged.
+      - name: Check the installed exporter
+        run: |
+          uv build --wheel -o /tmp/dist
+          cd /tmp
+          uvx --from /tmp/dist/prim_api-*.whl export-referential --help
+          uvx --from /tmp/dist/prim_api-*.whl python -c \
+            "from prim_api.referential import load_schema; load_schema(1)"

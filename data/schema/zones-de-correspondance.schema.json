@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "zdcid": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "zdcversion": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "zdccreated": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date-time"
+    },
+    "zdcchanged": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date-time"
+    },
+    "zdcname": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "zdcxepsg2154": {
+      "type": [
+        "integer",
+        "null"
+      ]
+    },
+    "zdcyepsg2154": {
+      "type": [
+        "integer",
+        "null"
+      ]
+    },
+    "zdctown": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "zdcpostalregion": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "zdctype": {
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  }
+}

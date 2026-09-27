@@ -1,0 +1,104 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "arrid": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "arrversion": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "arrcreated": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date-time"
+    },
+    "arrchanged": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date-time"
+    },
+    "arrname": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "arrtype": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "arrxepsg2154": {
+      "type": [
+        "integer",
+        "null"
+      ]
+    },
+    "arryepsg2154": {
+      "type": [
+        "integer",
+        "null"
+      ]
+    },
+    "arrtown": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "arrpostalregion": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "arraccessibility": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "arraudiblesignals": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "arrvisualsigns": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "arrfarezone": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "zdaid": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "arrgeopoint": {
+      "type": [
+        "object",
+        "null"
+      ]
+    }
+  }
+}

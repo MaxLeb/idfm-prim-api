@@ -9,6 +9,7 @@ Runnable examples demonstrating prim_api usage. Each script is self-contained.
 | `browse_referentiel_lignes.py` | Download and browse the transit line registry | No |
 | `browse_arrets_lignes.py` | Download and browse stop-line associations | No |
 | `next_passages_board.py` | Interactive departure board (mode → line → stop → direction) | Yes (`PRIM_TOKEN`) |
+| `browse_referential.py` | Build the stations referential (format 1) and search it by name or position | No |
 
 ## Running
 
@@ -27,6 +28,10 @@ uv run python samples/browse_referentiel_lignes.py --search "RER"
 # Browse stop-line associations
 uv run python samples/browse_arrets_lignes.py
 uv run python samples/browse_arrets_lignes.py --search "Châtelet"
+
+# Stations referential (five datasets, no API key needed)
+uv run python samples/browse_referential.py --search "Châtelet"
+uv run python samples/browse_referential.py --near 48.8584,2.3470 --limit 5
 
 # Query real-time data (requires API key)
 export PRIM_TOKEN="your-api-key"
