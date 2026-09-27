@@ -45,8 +45,17 @@ jobs:
           minColorRange: 50
           maxColorRange: 100
 
-      - name: Dry-run sync pipeline
-        run: uv run python -m tools.sync_all --dry-run
+      # Network smoke test only: the sync logic itself is covered by unit tests.
+      # Since 2026 the PRIM portal answers 403 to automated clients (page and
+      # direct spec URL alike), which failed this step on main regardless of the
+      # code. It stays visible (annotation) but no longer blocks a change.
+      - name: Dry-run sync pipeline (non-blocking)
+        continue-on-error: true
+        run: |
+          uv run python -m tools.sync_all --dry-run || {
+            echo "::warning::sync dry-run failed (PRIM portal unreachable from CI?)"
+            exit 1
+          }
 
       # The exporter is what consumers pin (uvx from a tag): check that it works
       # from the built wheel, outside the checkout, with its schema packaged.
