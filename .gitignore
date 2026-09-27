@@ -11,6 +11,10 @@ build/
 # uv
 uv.lock
 
+# Coverage reports (pytest-cov)
+.coverage
+coverage.json
+
 # Dataset artifacts (large, downloaded on demand by devs)
 data/raw/
 data/reports/

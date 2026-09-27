@@ -3,8 +3,9 @@
 # runtime dependencies.  pip / uv reads this to know what to install.
 [project]
 name = "prim-api"
-version = "0.1.0"
-description = "Auto-sync PRIM API specs, generate Python clients, sync & validate Opendatasoft datasets"
+# The repository tag (vX.Y.Z) must match this version: the release workflow checks it.
+version = "1.0.0"
+description = "IDFM stations referential exporter, PRIM specs sync and Python clients, Opendatasoft datasets sync & validation"
 license = "MIT"
 requires-python = ">=3.12"
 dependencies = [
@@ -16,6 +17,7 @@ dependencies = [
     "pydantic>=2.0",        # Data validation (required by generated OpenAPI clients)
     "python-dateutil>=2.5.3",  # Date parsing (required by generated clients)
     "urllib3>=1.25.3,<2.1.0",  # HTTP lib (required by generated clients, pinned for compat)
+    "pyproj>=3.6",          # Lambert 93 -> WGS 84 conversion (referential exporter)
 ]
 
 # -- Console entry points ------------------------------------------------------
@@ -27,6 +29,7 @@ generate-clients = "tools.generate_clients:app"
 sync-datasets = "tools.sync_datasets:app"
 validate-datasets = "tools.validate_datasets:app"
 sync-all = "tools.sync_all:app"
+export-referential = "prim_api.referential.cli:app"
 
 # -- Pytest configuration ------------------------------------------------------
 # testpaths: only look for tests in tests/.
@@ -37,11 +40,23 @@ sync-all = "tools.sync_all:app"
 testpaths = ["tests"]
 pythonpath = [".", "generated/clients/idfm_ivtr_requete_unitaire"]
 
+# -- Build system ----------------------------------------------------------------
+# Declaring a build backend makes `uv sync` install the project itself (editable),
+# so console scripts exist and `importlib.metadata.version("prim-api")` works, and
+# lets consumers run a tagged version without cloning:
+#   uvx --from git+https://github.com/MaxLeb/idfm-prim-api@v1.0.0 export-referential
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
 # -- Setuptools packaging ------------------------------------------------------
 # Only include the prim_api package (not tools/, tests/, samples/) when building
-# a distributable wheel.
+# a distributable wheel.  The referential JSON Schemas ship as package data.
 [tool.setuptools.packages.find]
 include = ["prim_api*"]
+
+[tool.setuptools.package-data]
+"prim_api.referential" = ["schemas/*.json"]
 
 # -- Ruff linter & formatter ---------------------------------------------------
 # line-length: max 100 chars (ruff enforces this for both lint and format).
@@ -51,6 +66,11 @@ include = ["prim_api*"]
 line-length = 100
 target-version = "py312"
 exclude = ["generated/clients/"]
+
+# ruff >= 0.16 also formats Python code blocks inside Markdown. The samples in
+# README.md and docs/ align their comments on purpose: keep them as written.
+[tool.ruff.format]
+exclude = ["*.md"]
 
 # select: which rule families to enable.
 #   E = pycodestyle errors, F = Pyflakes, I = isort (import sorting),

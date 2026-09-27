@@ -1,0 +1,69 @@
+name: Release
+
+# Publishes the stations referential for every version tag (vX.Y.Z).
+#
+# The tag is pushed by a human after the PR is merged: publishing a version
+# engages the public contract (format + schema), so it is never automated.
+# The release carries, under ODbL 1.0 (two IDFM sources are ODbL):
+#   - stations.format-1.json        export of ALL modes (the public offer of
+#                                   the derived database)
+#   - stations.format-1.schema.json the closed JSON Schema of format 1
+# Consumers that embed a subset re-run the exporter with --modes; `generator`
+# and `modes` in the file are enough to reproduce it.
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v4
+        with:
+          version: "latest"
+
+      - name: Install dependencies
+        run: uv sync
+
+      - name: Check that the tag matches the package version
+        run: |
+          VERSION=$(uv run python -c "import importlib.metadata as m; print(m.version('prim-api'))")
+          if [ "${GITHUB_REF_NAME}" != "v${VERSION}" ]; then
+            echo "::error::tag ${GITHUB_REF_NAME} does not match pyproject version ${VERSION}"
+            exit 1
+          fi
+
+      - name: Lint and test
+        run: |
+          uv run ruff check .
+          uv run ruff format --check .
+          uv run pytest
+
+      - name: Export the referential (all modes) and copy its schema
+        run: |
+          mkdir -p dist
+          uv run export-referential --format 1 --output dist/stations.format-1.json
+          cp prim_api/referential/schemas/stations.format-1.schema.json dist/
+
+      - name: Create the GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cat > notes.md <<'NOTES'
+          Stations referential of Île-de-France (all modes) and its JSON Schema.
+
+          **Licence**: the referential is a derived database of Île-de-France Mobilités
+          open data and is published under the [ODbL 1.0](https://opendatacommons.org/licenses/odbl/1-0/).
+          Attribution: « Île-de-France Mobilités ». The code of this repository is MIT.
+
+          See the README (« Stations referential export » and « Changes ») for the format,
+          the stability promise and what changed in this version.
+          NOTES
+          gh release create "${GITHUB_REF_NAME}" dist/* \
+            --title "${GITHUB_REF_NAME}" --notes-file notes.md --verify-tag

@@ -11,3 +11,13 @@ datasets:
     portal_base: "https://data.iledefrance-mobilites.fr"
     export_format: "jsonl"
     validate: true
+  # Added for the stations referential exporter (prim_api.referential): stops
+  # (platforms, the only level with WGS 84 coordinates) and multimodal hubs.
+  - dataset_id: "arrets"
+    portal_base: "https://data.iledefrance-mobilites.fr"
+    export_format: "jsonl"
+    validate: true
+  - dataset_id: "zones-de-correspondance"
+    portal_base: "https://data.iledefrance-mobilites.fr"
+    export_format: "jsonl"
+    validate: true
