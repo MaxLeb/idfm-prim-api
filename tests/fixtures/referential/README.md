@@ -13,11 +13,12 @@ referential exporter (downloaded on 2026-09-27), limited to seven hubs
 | 66403 | Les Ambassadeurs / Norton | bus only |
 | 73848, 73849 | Funiculaire de Montmartre (top, bottom) | funicular, plus bus stop areas |
 
-Every record of `zones-d-arrets`, `arrets`, `arrets-lignes` and
-`referentiel-des-lignes` that belongs to these hubs is kept, so the extracts are
-consistent (every reference resolves).
+Every record of `zones-d-arrets`, `arrets`, `arrets-lignes`,
+`referentiel-des-lignes`, `acces` and `relations-acces` (format 2) that belongs
+to these hubs is kept, so the extracts are consistent (every reference resolves).
 
 Licences (see the README of the repository): `zones-de-correspondance`,
-`zones-d-arrets` and `arrets` are under Licence Ouverte 2.0 (Etalab);
+`zones-d-arrets`, `arrets`, `acces` and `relations-acces` are under Licence
+Ouverte 2.0 (Etalab);
 `arrets-lignes` and `referentiel-des-lignes` are under ODbL. Source:
 Île-de-France Mobilités, https://data.iledefrance-mobilites.fr.

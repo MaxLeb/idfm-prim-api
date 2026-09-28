@@ -483,8 +483,8 @@ class TestSchema:
         assert json.loads(schema_text(1)) == load_schema(1)
 
     def test_unknown_format(self):
-        with pytest.raises(ValueError, match="format 2"):
-            schema_filename(2)
+        with pytest.raises(ValueError, match="format 3"):
+            schema_filename(3)
 
     @pytest.mark.parametrize(
         "mutate",
@@ -579,9 +579,9 @@ class TestCli:
         assert "unknown mode" in result.output
 
     def test_unknown_format(self, data_dir):
-        result = self.invoke("--no-download", "--data-dir", str(data_dir), "--format", "2")
+        result = self.invoke("--no-download", "--data-dir", str(data_dir), "--format", "3")
         assert result.exit_code == 1
-        assert "format 2" in result.output
+        assert "format 3" in result.output
 
     @respx.mock
     def test_download_records_data_processed(self, tmp_path):

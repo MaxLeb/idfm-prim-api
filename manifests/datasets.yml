@@ -21,3 +21,12 @@ datasets:
     portal_base: "https://data.iledefrance-mobilites.fr"
     export_format: "jsonl"
     validate: true
+  # Format 2 of the referential: entrances and exits of stations, and their stop areas.
+  - dataset_id: "acces"
+    portal_base: "https://data.iledefrance-mobilites.fr"
+    export_format: "jsonl"
+    validate: true
+  - dataset_id: "relations-acces"
+    portal_base: "https://data.iledefrance-mobilites.fr"
+    export_format: "jsonl"
+    validate: true

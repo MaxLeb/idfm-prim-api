@@ -5,9 +5,9 @@ name: Release
 # The tag is pushed by a human after the PR is merged: publishing a version
 # engages the public contract (format + schema), so it is never automated.
 # The release carries, under ODbL 1.0 (two IDFM sources are ODbL):
-#   - stations.format-1.json        export of ALL modes (the public offer of
-#                                   the derived database)
-#   - stations.format-1.schema.json the closed JSON Schema of format 1
+#   - stations.format-<n>.json        export of ALL modes, for every produced
+#                                     format (the public offer of the derived database)
+#   - stations.format-<n>.schema.json the closed JSON Schema of each format
 # Consumers that embed a subset re-run the exporter with --modes; `generator`
 # and `modes` in the file are enough to reproduce it.
 
@@ -45,18 +45,22 @@ jobs:
           uv run ruff format --check .
           uv run pytest
 
-      - name: Export the referential (all modes) and copy its schema
+      - name: Export the referential (all modes, every format) and copy the schemas
         run: |
           mkdir -p dist
-          uv run export-referential --format 1 --output dist/stations.format-1.json
-          cp prim_api/referential/schemas/stations.format-1.schema.json dist/
+          # The latest format downloads all its datasets (a superset of the older ones); the
+          # other formats reuse them (--no-download), so every file describes the same data.
+          uv run export-referential --format 2 --output dist/stations.format-2.json
+          uv run export-referential --no-download --format 1 --output dist/stations.format-1.json
+          cp prim_api/referential/schemas/stations.format-*.schema.json dist/
 
       - name: Create the GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           cat > notes.md <<'NOTES'
-          Stations referential of Île-de-France (all modes) and its JSON Schema.
+          Stations referential of Île-de-France (all modes), in every produced format,
+          with the JSON Schema of each format.
 
           **Licence**: the referential is a derived database of Île-de-France Mobilités
           open data and is published under the [ODbL 1.0](https://opendatacommons.org/licenses/odbl/1-0/).

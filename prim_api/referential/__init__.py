@@ -5,6 +5,7 @@ logical stations (IDFM *zones de correspondance*) with their lines, in a
 numbered, strict format validated by a closed JSON Schema.
 
 - ``format1``: construction rules of format 1 (pure, unit-tested);
+- ``format2``: format 1 plus the accesses (entrances, exits) of each station;
 - ``schema``: the JSON Schemas shipped with the package;
 - ``cli``: the ``export-referential`` command.
 
@@ -25,6 +26,7 @@ from prim_api.referential.format1 import (
     map_mode,
     parse_modes,
 )
+from prim_api.referential.format2 import build_stations_file_format2
 from prim_api.referential.schema import load_schema, validate_stations_file
 
 __all__ = [
@@ -36,6 +38,7 @@ __all__ = [
     "SOURCE_DATASETS",
     "ReferentialError",
     "build_stations_file",
+    "build_stations_file_format2",
     "load_schema",
     "map_mode",
     "parse_modes",
