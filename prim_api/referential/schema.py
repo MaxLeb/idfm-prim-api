@@ -14,7 +14,10 @@ from typing import Any
 import jsonschema
 
 #: Schema file of each supported format.
-SCHEMA_FILES: dict[int, str] = {1: "stations.format-1.schema.json"}
+SCHEMA_FILES: dict[int, str] = {
+    1: "stations.format-1.schema.json",
+    2: "stations.format-2.schema.json",
+}
 
 
 def schema_filename(format_number: int) -> str:

@@ -1,0 +1,98 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "accid": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "accversion": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "acccreated": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date-time"
+    },
+    "accchanged": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date-time"
+    },
+    "fournisseurid": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "fournisseurname": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "accname": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "accshortname": {
+      "type": [
+        "integer",
+        "null"
+      ]
+    },
+    "accdescription": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "accprivatecode": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "accxespg2154": {
+      "type": [
+        "integer",
+        "null"
+      ]
+    },
+    "accyespg2154": {
+      "type": [
+        "integer",
+        "null"
+      ]
+    },
+    "accisentry": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "accisexit": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "accgeopoint": {
+      "type": [
+        "object",
+        "null"
+      ]
+    }
+  }
+}

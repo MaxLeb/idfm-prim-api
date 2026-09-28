@@ -93,18 +93,18 @@ about cities or consumers: it always covers the whole network, and its only opti
 
 ```bash
 # From a tag, without cloning (what consumers should pin):
-uvx --from git+https://github.com/MaxLeb/idfm-prim-api@v1.0.0 \
-    export-referential --format 1 --modes METRO,RER,TRAIN,TRAM > stations.json
+uvx --from git+https://github.com/MaxLeb/idfm-prim-api@v1.1.0 \
+    export-referential --format 2 --modes METRO,RER,TRAIN,TRAM > stations.json
 
-# From a checkout:
-uv run export-referential --modes METRO,RER -o stations.json
-uv run export-referential --no-download -o stations.json   # reuse downloaded datasets
+# From a checkout (always pass --format: the default stays 1 for compatibility):
+uv run export-referential --format 2 --modes METRO,RER -o stations.json
+uv run export-referential --format 2 --no-download -o stations.json   # reuse downloaded datasets
 ```
 
 Datasets are downloaded to `data/raw/` in a checkout, or to `~/.cache/idfm-prim-api/raw`
 (`$XDG_CACHE_HOME`) when installed. The file is validated against its schema before being written.
-Each [release](https://github.com/MaxLeb/idfm-prim-api/releases) also publishes the export of all
-modes and the schema.
+Each [release](https://github.com/MaxLeb/idfm-prim-api/releases) also publishes, for every produced
+format, the export of all modes and its schema.
 
 ### Format 1
 
@@ -159,16 +159,42 @@ Sources: `zones-de-correspondance`, `zones-d-arrets`, `arrets` (Licence Ouverte 
 `arrets-lignes`, `referentiel-des-lignes` (ODbL). Any inconsistency in them (unresolvable stop,
 line, area or hub, unknown mode) fails the export rather than dropping data silently.
 
+### Format 2
+
+Format 2 is format 1 plus, for every station, the **accesses** (entrances and exits) of its stop
+areas, from the IDFM datasets `acces` and `relations-acces` (Licence Ouverte 2.0). Consumers that do
+not need them keep asking for `--format 1`, which stays produced.
+
+```json
+{ "id": "IDFM:474151", "name": "Châtelet - Les Halles", "…": "…",
+  "accesses": [
+    { "id": "IDFM:50148652", "name": "Porte Marguerite de Navarre", "number": 1,
+      "lat": 48.860433, "lon": 2.346346, "entry": true, "exit": true }
+  ] }
+```
+
+| Field | Meaning |
+|---|---|
+| `accesses[].id` | `IDFM:<access id>`: the id that platform positioning (`positionnement-dans-la-rame`) points to. |
+| `name`, `number` | Name as published; number shown on the signage, or `null`. |
+| `lat`, `lon` | Published WGS 84 point, six decimals. |
+| `entry`, `exit` | Whether one can enter, exit, or both. |
+
+Rules: every access linked to one of the station's `areas` (the stop areas of the kept modes), each
+listed once, sorted by numeric id; `[]` when none is published (tram stops, a few TER stations
+outside Île-de-France). The `version` is the most recent `data_processed` of the **seven** datasets.
+
 ### Versioning
 
 - **The format is strict**: every field is always present (`null` when the source has no value),
-  the schema is closed (`prim_api/referential/schemas/stations.format-1.schema.json`), and **any**
+  each schema is closed (`prim_api/referential/schemas/stations.format-<n>.schema.json`), and **any**
   change of shape — a field, a mode value, a construction rule — is a **new format number**.
   Consumers read exactly the format they know and refuse the others.
 - **The repository follows SemVer on that contract**: producing a new format while still producing
   the previous ones is a **minor** release; dropping a format is a **major** release; a fix that
   keeps format and output unchanged is a **patch**.
-- Format 1 is frozen by `v1.0.0`. Tags are pushed by a maintainer, never by automation.
+- Format 1 is frozen by `v1.0.0`, format 2 by `v1.1.0`. Tags are pushed by a maintainer, never by
+  automation.
 - The format is owned by its first consumer (the Everyday France app); this repository is its first
   producer and hosts its schema.
 
@@ -180,6 +206,15 @@ under ODbL: **every export is published under the ODbL 1.0**, with the attributi
 Releases make the full export available; a filtered export is reproducible from `generator` + `modes`.
 
 ## Changes
+
+### v1.1.0
+
+- New: **format 2** (`--format 2`, `prim_api.referential.format2`, closed schema
+  `stations.format-2.schema.json`): format 1 plus the accesses of each station. Format 1 is still
+  produced unchanged.
+- New datasets in `manifests/datasets.yml`: `acces`, `relations-acces`.
+- The release publishes every format (all modes) and every schema.
+- CLI: one registry of formats (sources and builder); the summary counts accesses for format 2.
 
 ### v1.0.0
 

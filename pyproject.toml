@@ -4,7 +4,7 @@
 [project]
 name = "prim-api"
 # The repository tag (vX.Y.Z) must match this version: the release workflow checks it.
-version = "1.0.0"
+version = "1.1.0"
 description = "IDFM stations referential exporter, PRIM specs sync and Python clients, Opendatasoft datasets sync & validation"
 license = "MIT"
 requires-python = ">=3.12"

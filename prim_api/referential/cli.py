@@ -34,13 +34,12 @@ import typer
 from rich.console import Console
 
 from prim_api import datasets
+from prim_api.referential import format1, format2
 from prim_api.referential.format1 import (
     FORMAT,
     MODES,
     PORTAL_BASE,
-    SOURCE_DATASETS,
     ReferentialError,
-    build_stations_file,
     parse_modes,
 )
 from prim_api.referential.schema import SCHEMA_FILES, validate_stations_file
@@ -50,6 +49,13 @@ GENERATOR_NAME = "idfm-prim-api"
 
 #: Distribution name in ``pyproject.toml`` (used to read the installed version).
 DISTRIBUTION_NAME = "prim-api"
+
+#: Each produced format: its source datasets and its builder. Adding a format while keeping the
+#: others is a minor release; dropping one is a major release (README « Versioning »).
+FORMATS = {
+    1: (format1.SOURCE_DATASETS, format1.build_stations_file),
+    2: (format2.SOURCE_DATASETS, format2.build_stations_file_format2),
+}
 
 app = typer.Typer(add_completion=False, help=__doc__.split("\n\n")[0])
 # Everything but the document goes to stderr, so that stdout can be redirected.
@@ -78,10 +84,10 @@ def default_data_dir() -> Path:
     return cache_root / GENERATOR_NAME / "raw"
 
 
-def _download(data_dir: Path) -> None:
+def _download(data_dir: Path, sources: tuple[str, ...]) -> None:
     """Download every source dataset and record its ``data_processed`` date."""
     with httpx.Client(timeout=60.0, follow_redirects=True) as client:
-        for dataset_id in SOURCE_DATASETS:
+        for dataset_id in sources:
             console.print(f"[dim]Downloading {dataset_id}…[/dim]")
             if not datasets.ensure_dataset(dataset_id, PORTAL_BASE, data_dir=data_dir):
                 raise ReferentialError(f"download of {dataset_id} failed")
@@ -93,10 +99,10 @@ def _download(data_dir: Path) -> None:
             datasets.record_metadata_fields(dataset_id, {"data_processed": processed}, data_dir)
 
 
-def _read_data_processed(data_dir: Path) -> dict[str, str]:
+def _read_data_processed(data_dir: Path, sources: tuple[str, ...]) -> dict[str, str]:
     """Read the ``data_processed`` dates recorded next to the datasets."""
     dates: dict[str, str] = {}
-    for dataset_id in SOURCE_DATASETS:
+    for dataset_id in sources:
         processed = (datasets.load_metadata(dataset_id, data_dir) or {}).get("data_processed")
         if not processed:
             raise ReferentialError(
@@ -106,10 +112,10 @@ def _read_data_processed(data_dir: Path) -> dict[str, str]:
     return dates
 
 
-def _load_records(data_dir: Path) -> dict[str, list[dict]]:
-    """Load the five datasets from ``data_dir``; an empty dataset is an error."""
+def _load_records(data_dir: Path, sources: tuple[str, ...]) -> dict[str, list[dict]]:
+    """Load the source datasets from ``data_dir``; an empty dataset is an error."""
     records = {}
-    for dataset_id in SOURCE_DATASETS:
+    for dataset_id in sources:
         rows = datasets.load_dataset(dataset_id, data_dir=data_dir)
         if not rows:
             raise ReferentialError(f"{dataset_id}: no records in {data_dir}")
@@ -124,13 +130,20 @@ def _summary(document: dict) -> str:
         for mode in {line["mode"] for line in stop["lines"]}:
             counts[mode] += 1
     per_mode = ", ".join(f"{mode} {count}" for mode, count in counts.items())
-    return f"{len(document['stops'])} stations ({per_mode}), version {document['version']}"
+    summary = f"{len(document['stops'])} stations ({per_mode}), version {document['version']}"
+    if document["format"] >= 2:
+        accesses = sum(len(stop["accesses"]) for stop in document["stops"])
+        summary += f", {accesses} accesses"
+    return f"format {document['format']}: {summary}"
 
 
 @app.command()
 def main(
     format_number: Annotated[
-        int, typer.Option("--format", help=f"Format to produce (known: {sorted(SCHEMA_FILES)}).")
+        int,
+        typer.Option(
+            "--format", help=f"Format to produce ({sorted(SCHEMA_FILES)}); always pass it."
+        ),
     ] = FORMAT,
     modes: Annotated[
         str, typer.Option("--modes", help="Comma-separated modes to keep (default: all).")
@@ -151,19 +164,20 @@ def main(
 ) -> None:
     """Export the stations referential of Île-de-France."""
     try:
-        if format_number not in SCHEMA_FILES:
-            known = sorted(SCHEMA_FILES)
+        if format_number not in FORMATS or format_number not in SCHEMA_FILES:
+            known = sorted(FORMATS)
             raise ReferentialError(
                 f"format {format_number} is not produced by this version (known: {known})"
             )
+        sources, build = FORMATS[format_number]
         selected = parse_modes(modes)
         directory = data_dir or default_data_dir()
         if download:
-            _download(directory)
-        document = build_stations_file(
-            _load_records(directory),
+            _download(directory, sources)
+        document = build(
+            _load_records(directory, sources),
             modes=selected,
-            data_processed=_read_data_processed(directory),
+            data_processed=_read_data_processed(directory, sources),
             generator=generator_string(),
             generated_at=datetime.now(UTC),
         )
